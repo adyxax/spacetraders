@@ -1,5 +1,6 @@
 import * as agent from './lib/agent.js';
 import * as api from './lib/api.js';
+import * as contracts from './lib/contracts.js';
 import * as ships from './lib/ships.js';
 import * as systems from './lib/systems.js';
 
@@ -13,16 +14,24 @@ ships\t\t\tRetrieve all of your ships.`);
 }
 
 switch(process.argv[2]) {
-case 'contracts':
-	api.send({ endpoint: '/my/contracts'});
 	break;
-case 'extract':
-	if (process.argv[3] !== undefined && process.argv[4] !== undefined) {
-		agent.extract({ship: process.argv[3], good: process.argv[4]});
-	} else {
-		usage();
-	}
-	break;
+//case 'deliver':
+//	agent.deliver({
+//		contract: process.argv[3],
+//		ship: process.argv[4],
+//		good: process.argv[5],
+//		destination: process.argv[6],
+//		field: process.argv[7],
+//		//units: process.argv[8],
+//	});
+//	break;
+//case 'extract':
+//	if (process.argv[3] !== undefined && process.argv[4] !== undefined) {
+//		agent.extract({ship: process.argv[3], good: process.argv[4]});
+//	} else {
+//		usage();
+//	}
+//	break;
 case 'init':
 	if (process.argv[3] !== undefined && process.argv[4] !== undefined && process.argv[5] !== undefined) {
 		agent.init(process.argv[3], process.argv[4], process.argv[5]);
@@ -31,7 +40,7 @@ case 'init':
 	}
 	break;
 case 'my-agent':
-	api.send({endpoint: '/my/agent'});
+	api.debugLog(await api.send({endpoint: '/my/agent'}));
 	break;
 case 'register':
 	if (process.argv[3] !== undefined && process.argv[4] !== undefined) {
@@ -41,42 +50,48 @@ case 'register':
 	}
 	break;
 case 'ships':
-	api.send({endpoint: '/my/ships'});
+	api.debugLog(await api.send({endpoint: '/my/ships'}));
 	break;
 default:
 	// wip and manual actions
 	switch(process.argv[2]) {
-	case 'contract-accept':
-		api.send({endpoint: `/my/contracts/${process.argv[3]}/accept`, method: 'POST'});
+	case 'contracts.contracts':
+		api.debugLog(await contracts.contracts());
 		break;
-	case 'dock':
-		ships.dock({ship: process.argv[3]});
+	case 'contracts.accept':
+		api.debugLog(await contracts.accept({id: process.argv[3]}));
 		break;
-	case 'market':
-		api.send({endpoint: `/systems/${process.argv[3]}/waypoints/${process.argv[4]}/market`});
+	case 'ships.dock':
+		api.debugLog(await ships.dock({ship: process.argv[3]}));
 		break;
-	case 'navigate':
-		ships.navigate({ship: process.argv[3], waypoint: process.argv[4]});
+	case 'ships.extract':
+		api.debugLog(await ships.extract({ship: process.argv[3]}));
 		break;
-	case 'orbit':
-		ships.orbit({ship: process.argv[3]});
+	//case 'market':
+	//	api.send({endpoint: `/systems/${process.argv[3]}/waypoints/${process.argv[4]}/market`});
+	//	break;
+	case 'ships.navigate':
+		api.debugLog(await ships.navigate({ship: process.argv[3], waypoint: process.argv[4]}));
 		break;
-	case 'purchase':
-		api.send({endpoint: '/my/ships', method: 'POST', payload: {
-			shipType: 'SHIP_MINING_DRONE',
-			waypointSymbol: process.argv[3],
-		}});
+	case 'ships.orbit':
+		api.debugLog(await ships.orbit({ship: process.argv[3]}));
 		break;
-	case 'refuel':
-		ships.refuel({ship: process.argv[3]});
+	case 'ships.purchase':
+		api.debugLog(await ships.purchase({shipType: process.argv[3], waypoint: process.argv[4]}));
 		break;
-	case 'sell':
-		ships.sell({ship: process.argv[3], good: process.argv[4], units: process.argv[5]});
+	case 'ships.refuel':
+		api.debugLog(await ships.refuel({ship: process.argv[3]}));
 		break;
-	case 'asteroids':
+	case 'ships.sell':
+		api.debugLog(await ships.sell({ship: process.argv[3], good: process.argv[4], units: process.argv[5]}));
+		break;
+	case 'ships.ship':
+		api.debugLog(await ships.ship({ship: process.argv[3]}));
+		break;
+	case 'systems.asteroids':
 		api.debugLog(await systems.type({symbol: process.argv[3], type: 'ASTEROID_FIELD'}));
 		break;
-	case 'shipyards':
+	case 'systems.shipyards':
 		api.debugLog(await systems.trait({symbol: process.argv[3], trait: 'SHIPYARD'}));
 		break;
 	default:
