@@ -1,6 +1,7 @@
 import * as agent from './lib/agent.js';
 import * as api from './lib/api.js';
 import * as ships from './lib/ships.js';
+import * as systems from './lib/systems.js';
 
 function usage() {
 	console.log(`contracts\t\t\tList all of your contracts.
@@ -72,11 +73,11 @@ default:
 	case 'sell':
 		ships.sell({ship: process.argv[3], good: process.argv[4], units: process.argv[5]});
 		break;
-	case 'shipyard':
-		api.send({endpoint: `/systems/${process.argv[3]}/waypoints/${process.argv[4]}/shipyard`});
+	case 'asteroids':
+		api.debugLog(await systems.type({symbol: process.argv[3], type: 'ASTEROID_FIELD'}));
 		break;
-	case 'waypoints':
-		api.send({endpoint: `/systems/${process.argv[3]}/waypoints?limit=20&page=1`});
+	case 'shipyards':
+		api.debugLog(await systems.trait({symbol: process.argv[3], trait: 'SHIPYARD'}));
 		break;
 	default:
 		usage();
