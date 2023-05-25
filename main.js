@@ -14,6 +14,8 @@ ships\t\t\tRetrieve all of your ships.`);
 }
 
 switch(process.argv[2]) {
+case 'auto':
+	await agent.auto({ship: process.argv[3]});
 	break;
 //case 'deliver':
 //	agent.deliver({
