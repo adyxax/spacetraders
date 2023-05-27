@@ -1,3 +1,4 @@
+import * as autoContract from './automation/contract.js';
 import * as agent from './lib/agent.js';
 import * as api from './lib/api.js';
 import * as contracts from './lib/contracts.js';
@@ -5,35 +6,18 @@ import * as ships from './lib/ships.js';
 import * as systems from './lib/systems.js';
 
 function usage() {
-	console.log(`contracts\t\t\tList all of your contracts.
-extract [ship] [good]\t\tExtracts a good from the asteroid field the ship is orbiting and sell locally the unwanted ores until cargo is full
-init [symbol] [faction] [token]\tinits the database in case we have an already registered game
-my-agent\t\t\tFetch your agent's details.
-register [symbol] [faction]\tRegisters your agent then inits the database
-ships\t\t\tRetrieve all of your ships.`);
+	console.log(`autoContractForShip [ship_symbol]	run a contract extraction-delivery loop for the ship.
+contracts.contracts			List your contracts.
+my-agent				Fetch your agent's status.
+register [symbol] [faction]		Registers your agent then inits the database
+ships.ship [ship_symbol]		Retrieve a ship's status.
+ships					Retrieve all of your ships.
 }
 
 switch(process.argv[2]) {
-case 'auto':
-	await agent.auto({ship: process.argv[3]});
+case 'autoContractForShip':
+	await autoContract.auto({ship: process.argv[3]});
 	break;
-//case 'deliver':
-//	agent.deliver({
-//		contract: process.argv[3],
-//		ship: process.argv[4],
-//		good: process.argv[5],
-//		destination: process.argv[6],
-//		field: process.argv[7],
-//		//units: process.argv[8],
-//	});
-//	break;
-//case 'extract':
-//	if (process.argv[3] !== undefined && process.argv[4] !== undefined) {
-//		agent.extract({ship: process.argv[3], good: process.argv[4]});
-//	} else {
-//		usage();
-//	}
-//	break;
 case 'init':
 	if (process.argv[3] !== undefined && process.argv[4] !== undefined && process.argv[5] !== undefined) {
 		agent.init(process.argv[3], process.argv[4], process.argv[5]);
