@@ -13,7 +13,7 @@ export async function auto(ctx) {
 	let contract = cs[0];
 	if (!contract.accepted) {
 		console.log(new Date(), `accepting contract ${contract.id}`);
-		await contracts.accept({id: contract.id});
+		await contracts.accept({contract: contract.id});
 	}
 	const good = contract.terms.deliver[0].tradeSymbol;
 	const deliveryPoint = contract.terms.deliver[0].destinationSymbol;
