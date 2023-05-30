@@ -1,6 +1,6 @@
 CREATE TABLE systems (
        id INTEGER PRIMARY KEY,
-       symbol TEXT NOT NULL UNIQUE,
-       data TEXT NOT NULL,
-       updated DATE DEFAULT (datetime('now'))
+       data JSON NOT NULL,
+       updated DATE DEFAULT NULL
 );
+CREATE UNIQUE INDEX systems_data_symbol on systems (json_extract(data, '$.symbol'));

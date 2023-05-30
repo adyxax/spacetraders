@@ -109,11 +109,14 @@ default:
 	case 'systems.shipyards':
 		api.debugLog(await systems.trait({symbol: process.argv[3], trait: 'SHIPYARD'}));
 		break;
+	case 'systems.init':
+		await systems.init();
+		break;
 	case 'systems.system':
 		api.debugLog(await systems.system({symbol: process.argv[3]}));
 		break;
-	case 'systems.systems':
-		api.debugLog(await systems.systems());
+	case 'systems.waypoints':
+		api.debugLog(await systems.waypoints({symbol: process.argv[3]}));
 		break;
 	default:
 		usage();
