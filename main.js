@@ -1,4 +1,4 @@
-import * as autoContract from './automation/contract.js';
+import * as autoContracting from './automation/contracting.js';
 import * as autoMining from './automation/mining.js';
 import * as agent from './lib/agent.js';
 import * as api from './lib/api.js';
@@ -18,7 +18,7 @@ status					Servers' status`);
 
 switch(process.argv[2]) {
 case 'autoContractForShip':
-	await autoContract.auto({ship: process.argv[3]});
+	await autoContracting.auto({ship: process.argv[3]});
 	break;
 case 'autoMiningForShip':
 	await autoMining.mineUntilFullOf({ship: process.argv[3], good: 'NON_EXISTENT'});
