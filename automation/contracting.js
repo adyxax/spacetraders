@@ -34,14 +34,14 @@ export async function auto(ctx) {
 			await ships.navigate({ship: ctx.ship, waypoint: deliveryPoint});
 			break;
 		case deliveryPoint:
-			await ships.dock({ship: ctx.ship});
+			await ships.dock({symbol: ctx.ship});
 			await ships.refuel({ship: ctx.ship});
 			console.log(`delivering ${goodCargo.units} of ${good}`);
 			await contracts.deliver({contract: contract.id, ship: ctx.ship, good: good, units: goodCargo.units });
 			await ships.navigate({ship: ctx.ship, waypoint: asteroidField});
-			await ships.dock({ship: ctx.ship});
+			await ships.dock({symbol: ctx.ship});
 			await ships.refuel({ship: ctx.ship});
-			await ships.orbit({ship: ctx.ship});
+			await ships.orbit({symbol: ctx.ship});
 			break;
 		default:
 			throw `where is the ship?`;

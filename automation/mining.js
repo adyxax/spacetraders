@@ -13,13 +13,13 @@ export async function mineUntilFullOf(ctx) {
 		if (good?.units + (antimatter?.units ?? 0) >= response.data.cargo.capacity * 0.9) { // > 90% full of the valuable goods
 			return good.units;
 		} else { // we are full but need to sell junk
-			await ships.dock({ship: ctx.ship});
+			await ships.dock({symbol: ctx.ship});
 			for (let i=0; i<inventory.length; ++i) {
 				if (inventory[i].symbol === 'ANTIMATTER') continue;
 				//console.log(`selling ${inventory[i].units} of ${inventory[i].symbol}`);
 				await ships.sell({ship: ctx.ship, good: inventory[i].symbol, units: inventory[i].units});
 			}
-			await ships.orbit({ship: ctx.ship});
+			await ships.orbit({symbol: ctx.ship});
 		}
 	}
 }
@@ -31,7 +31,8 @@ async function mineUntilFull(ctx) {
 		const response = await ships.extract(ctx);
 		if (response === null) return null;
 		//console.log(`${ctx.ship}: extracted ${response.data.extraction.yield.units} of ${response.data.extraction.yield.symbol}`);
-		await api.sleep(response.data.cooldown.remainingSeconds*1000);
 		if (response.data.cargo.units >= response.data.cargo.capacity * 0.9) return response;
 	}
 }
+
+// TODO surveying the asteroid field

@@ -1,7 +1,7 @@
 import db from './db.js';
 
-const getSystemStatement = db.prepare(`SELECT data from systems where json_extract(data, '$.symbol') = ?;`);
-const getSystemUpdatedStatement = db.prepare(`SELECT updated from systems where json_extract(data, '$.symbol') = ?;`);
+const getSystemStatement = db.prepare(`SELECT data FROM systems WHERE json_extract(data, '$.symbol') = ?;`);
+const getSystemUpdatedStatement = db.prepare(`SELECT updated FROM systems WHERE json_extract(data, '$.symbol') = ?;`);
 const setSystemStatement = db.prepare(`INSERT INTO systems(data) VALUES (json(?));`);
 const setSystemWaypointsStatement = db.prepare(`UPDATE systems SET data = (SELECT json_set(data, '$.waypoints', json(:waypoints)) FROM systems WHERE json_extract(data, '$.symbol') = :symbol), updated = :date WHERE json_extract(data, '$.symbol') = :symbol;`);
 
@@ -61,7 +61,7 @@ export function setSystemWaypoints(symbol, waypoints) {
 			date: new Date().toISOString(),
 			symbol: symbol,
 			waypoints: JSON.stringify(waypoints),
-		});
+		}).changes;
 	} catch (err) {
 		console.log(err);
 		return null;

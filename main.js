@@ -1,6 +1,6 @@
+import * as automation from './automation/automation.js';
 import * as autoContracting from './automation/contracting.js';
 import * as autoMining from './automation/mining.js';
-import * as agent from './lib/agent.js';
 import * as api from './lib/api.js';
 import * as contracts from './lib/contracts.js';
 import * as ships from './lib/ships.js';
@@ -23,19 +23,12 @@ case 'autoContractForShip':
 case 'autoMiningForShip':
 	await autoMining.mineUntilFullOf({ship: process.argv[3], good: 'NON_EXISTENT'});
 	break;
-case 'init':
-	if (process.argv[3] !== undefined && process.argv[4] !== undefined && process.argv[5] !== undefined) {
-		agent.init(process.argv[3], process.argv[4], process.argv[5]);
-	} else {
-		usage();
-	}
-	break;
 case 'my-agent':
 	api.debugLog(await api.send({endpoint: '/my/agent'}));
 	break;
 case 'register':
 	if (process.argv[3] !== undefined && process.argv[4] !== undefined) {
-		agent.register(process.argv[3], process.argv[4]);
+		automation.register(process.argv[3], process.argv[4]);
 	} else {
 		usage();
 	}
@@ -59,7 +52,7 @@ default:
 		api.debugLog(await contracts.fulfill({contract: process.argv[3]}));
 		break;
 	case 'ships.dock':
-		api.debugLog(await ships.dock({ship: process.argv[3]}));
+		api.debugLog(await ships.dock({symbol: process.argv[3]}));
 		break;
 	case 'ships.extract':
 		api.debugLog(await ships.extract({ship: process.argv[3]}));
@@ -80,7 +73,7 @@ default:
 		api.debugLog(await ships.navigate({ship: process.argv[3], waypoint: process.argv[4]}));
 		break;
 	case 'ships.orbit':
-		api.debugLog(await ships.orbit({ship: process.argv[3]}));
+		api.debugLog(await ships.orbit({symbol: process.argv[3]}));
 		break;
 	case 'ships.purchase':
 		api.debugLog(await ships.purchase({shipType: process.argv[3], waypoint: process.argv[4]}));
@@ -108,9 +101,6 @@ default:
 		break;
 	case 'systems.shipyards':
 		api.debugLog(await systems.trait({symbol: process.argv[3], trait: 'SHIPYARD'}));
-		break;
-	case 'systems.init':
-		await systems.init();
 		break;
 	case 'systems.system':
 		api.debugLog(await systems.system({symbol: process.argv[3]}));
