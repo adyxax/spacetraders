@@ -54,9 +54,6 @@ default:
 	case 'ships.dock':
 		api.debugLog(await ships.dock({symbol: process.argv[3]}));
 		break;
-	case 'ships.extract':
-		api.debugLog(await ships.extract({ship: process.argv[3]}));
-		break;
 	case 'ships.jump':
 		api.debugLog(await ships.jump({ship: process.argv[3], system: process.argv[4]}));
 		break;
@@ -64,13 +61,10 @@ default:
 	//	api.send({endpoint: `/systems/${process.argv[3]}/waypoints/${process.argv[4]}/market`});
 	//	break;
 	case 'ships.navigate':
-		api.debugLog(await ships.navigate({ship: process.argv[3], waypoint: process.argv[4]}));
+		api.debugLog(await ships.navigate({symbol: process.argv[3], waypoint: process.argv[4]}));
 		break;
 	case 'ships.negotiate':
 		api.debugLog(await ships.negotiate({ship: process.argv[3]}));
-		break;
-	case 'ships.navigate':
-		api.debugLog(await ships.navigate({ship: process.argv[3], waypoint: process.argv[4]}));
 		break;
 	case 'ships.orbit':
 		api.debugLog(await ships.orbit({symbol: process.argv[3]}));
@@ -79,16 +73,16 @@ default:
 		api.debugLog(await ships.purchase({shipType: process.argv[3], waypoint: process.argv[4]}));
 		break;
 	case 'ships.refuel':
-		api.debugLog(await ships.refuel({ship: process.argv[3]}));
+		api.debugLog(await ships.refuel({symbol: process.argv[3]}));
 		break;
 	case 'ships.sell':
-		api.debugLog(await ships.sell({ship: process.argv[3], good: process.argv[4], units: process.argv[5]}));
+		api.debugLog(await ships.sell({symbol: process.argv[3], good: process.argv[4], units: process.argv[5]}));
 		break;
 	case 'ships.ship':
-		api.debugLog(await ships.ship({ship: process.argv[3]}));
+		api.debugLog(await ships.ship({symbol: process.argv[3]}));
 		break;
 	case 'ships.survey':
-		api.debugLog(await ships.survey({ship: process.argv[3]}));
+		api.debugLog(await ships.survey({symbol: process.argv[3]}));
 		break;
 	case 'systems.asteroids':
 		api.debugLog(await systems.type({symbol: process.argv[3], type: 'ASTEROID_FIELD'}));

@@ -6,7 +6,7 @@ import * as ships from '../lib/ships.js';
 export async function mineUntilFullOf(ctx) {
 	while(true) {
 		let response = await mineUntilFull({ship: ctx.ship});
-		if (response === null) response = await ships.ship({ship: ctx.ship}); // TODO we should not need to fetch this
+		if (response === null) response = await ships.ship({symbol: ctx.ship}); // TODO we should not need to fetch this
 		let good = response.data.cargo.inventory.filter(i => i.symbol === ctx.good)[0];
 		const inventory = response.data.cargo.inventory.filter(i => i.symbol !== ctx.good);
 		const antimatter = response.data.cargo.inventory.filter(i => i.symbol === 'ANTIMATTER')[0];
@@ -17,7 +17,7 @@ export async function mineUntilFullOf(ctx) {
 			for (let i=0; i<inventory.length; ++i) {
 				if (inventory[i].symbol === 'ANTIMATTER') continue;
 				//console.log(`selling ${inventory[i].units} of ${inventory[i].symbol}`);
-				await ships.sell({ship: ctx.ship, good: inventory[i].symbol, units: inventory[i].units});
+				await ships.sell({symbol: ctx.ship, good: inventory[i].symbol, units: inventory[i].units});
 			}
 			await ships.orbit({symbol: ctx.ship});
 		}
@@ -28,7 +28,7 @@ export async function mineUntilFullOf(ctx) {
 // returns the last ship's extract api response
 async function mineUntilFull(ctx) {
 	while(true) {
-		const response = await ships.extract(ctx);
+		const response = await ships.extract({symbol: ctx.ship});
 		if (response === null) return null;
 		//console.log(`${ctx.ship}: extracted ${response.data.extraction.yield.units} of ${response.data.extraction.yield.symbol}`);
 		if (response.data.cargo.units >= response.data.cargo.capacity * 0.9) return response;

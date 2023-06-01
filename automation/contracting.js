@@ -5,7 +5,7 @@ import * as ships from '../lib/ships.js';
 import * as systems from '../lib/systems.js';
 
 export async function auto(ctx) {
-	let ship = await ships.ship({ship: ctx.ship});
+	let ship = await ships.ship({symbol: ctx.ship});
 	// Fetch our contracts in the system the ship currently is in
 	let cs = await contracts.contracts();
 	cs = cs.data.filter(c => c.terms.deliver[0].destinationSymbol.startsWith(ship.data.nav.systemSymbol));
@@ -20,7 +20,7 @@ export async function auto(ctx) {
 	const asteroidFields = await systems.type({symbol: ship.data.nav.systemSymbol, type: 'ASTEROID_FIELD'});
 	const asteroidField = asteroidFields[0].symbol;
 	while (true) {
-		ship = await ships.ship({ship: ctx.ship}); // TODO we should not need to fetch this
+		ship = await ships.ship({symbol: ctx.ship}); // TODO we should not need to fetch this
 		// If we are in transit, we wait until we arrive
 		const delay = new Date(ship.data.nav.route.arrival) - new Date();
 		if (delay > 0) await api.sleep(delay);
@@ -31,16 +31,16 @@ export async function auto(ctx) {
 		case asteroidField:
 			let response = await mining.mineUntilFullOf({good: good, ship: ctx.ship});
 			//console.log(`${ctx.ship}'s cargo is full with ${response.units} of ${good}!`);
-			await ships.navigate({ship: ctx.ship, waypoint: deliveryPoint});
+			await ships.navigate({symbol: ctx.ship, waypoint: deliveryPoint});
 			break;
 		case deliveryPoint:
 			await ships.dock({symbol: ctx.ship});
-			await ships.refuel({ship: ctx.ship});
+			await ships.refuel({symbol: ctx.ship});
 			console.log(`delivering ${goodCargo.units} of ${good}`);
 			await contracts.deliver({contract: contract.id, ship: ctx.ship, good: good, units: goodCargo.units });
-			await ships.navigate({ship: ctx.ship, waypoint: asteroidField});
+			await ships.navigate({symbol: ctx.ship, waypoint: asteroidField});
 			await ships.dock({symbol: ctx.ship});
-			await ships.refuel({ship: ctx.ship});
+			await ships.refuel({symbol: ctx.ship});
 			await ships.orbit({symbol: ctx.ship});
 			break;
 		default:

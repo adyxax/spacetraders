@@ -4,6 +4,7 @@ import Database from 'better-sqlite3';
 const allMigrations = [
 	'database/000_init.sql',
 	'database/001_systems.sql',
+	'database/002_ships.sql',
 ];
 
 const db = new Database(

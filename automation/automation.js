@@ -21,6 +21,6 @@ export async function register(symbol, faction) {
 	}
 	dbConfig.registerAgent(json.data);
 	exploration.init();
-	// TODO ship
+	dbShips.setShip(json.data.ship);
 	// TODO contract
 }
