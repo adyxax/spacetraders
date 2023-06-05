@@ -1,4 +1,5 @@
 import * as db from '../database/systems.js';
+import * as api from '../lib/api.js';
 
 // Retrieves all systems information, should be called only once after registering
 export async function init() {
