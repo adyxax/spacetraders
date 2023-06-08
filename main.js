@@ -18,10 +18,10 @@ status					Servers' status`);
 
 switch(process.argv[2]) {
 case 'autoContractForShip':
-	await autoContracting.auto({ship: process.argv[3]});
+	await autoContracting.auto({symbol: process.argv[3]});
 	break;
 case 'autoMiningForShip':
-	await autoMining.mineUntilFullOf({ship: process.argv[3], good: 'NON_EXISTENT'});
+	await autoMining.mineUntilFullOf({symbol: process.argv[3], good: 'NON_EXISTENT'});
 	break;
 case 'my-agent':
 	api.debugLog(await api.send({endpoint: '/my/agent'}));

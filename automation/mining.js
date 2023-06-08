@@ -1,37 +1,32 @@
+import * as dbShips from '../database/ships.js';
 import * as api from '../lib/api.js';
 import * as ships from '../lib/ships.js';
 
-// example ctx { good: 'SILVER_ORE', ship: 'ADYXAX-2' }
-// returns the number of units of the good the ship extracted
+// example ctx { good: 'SILVER_ORE', symbol: 'ADYXAX-2' }
+// returns the number of units of the good the ship holds
 export async function mineUntilFullOf(ctx) {
 	while(true) {
-		let response = await mineUntilFull({ship: ctx.ship});
-		if (response === null) response = await ships.ship({symbol: ctx.ship}); // TODO we should not need to fetch this
-		let good = response.data.cargo.inventory.filter(i => i.symbol === ctx.good)[0];
-		const inventory = response.data.cargo.inventory.filter(i => i.symbol !== ctx.good);
-		const antimatter = response.data.cargo.inventory.filter(i => i.symbol === 'ANTIMATTER')[0];
-		if (good?.units + (antimatter?.units ?? 0) >= response.data.cargo.capacity * 0.9) { // > 90% full of the valuable goods
+		let cargo = await mineUntilFull({symbol: ctx.symbol});
+		let good = cargo.inventory.filter(i => i.symbol === ctx.good)[0];
+		const antimatter = cargo.inventory.filter(i => i.symbol === 'ANTIMATTER')[0];
+		const junk = cargo.inventory.filter(i => i.symbol !== ctx.good && i.symbol !== 'ANTIMATTER');
+		if ((good?.units ?? 0) + (antimatter?.units ?? 0) >= cargo.capacity * 0.9) { // > 90% full of the valuable goods
 			return good.units;
 		} else { // we are full but need to sell junk
-			await ships.dock({symbol: ctx.ship});
-			for (let i=0; i<inventory.length; ++i) {
-				if (inventory[i].symbol === 'ANTIMATTER') continue;
-				//console.log(`selling ${inventory[i].units} of ${inventory[i].symbol}`);
-				await ships.sell({symbol: ctx.ship, good: inventory[i].symbol, units: inventory[i].units});
+			for (let i=0; i<junk.length; ++i) {
+				await ships.sell({symbol: ctx.symbol, good: junk[i].symbol, units: junk[i].units});
 			}
-			await ships.orbit({symbol: ctx.ship});
 		}
 	}
 }
 
-// example ctx { ship: 'ADYXAX-2' }
-// returns the last ship's extract api response
+// example ctx { symbol: 'ADYXAX-2' }
+// extract the ship's cargo contents when more than 80% full then returns the ships cargo object
 async function mineUntilFull(ctx) {
 	while(true) {
-		const response = await ships.extract({symbol: ctx.ship});
-		if (response === null) return null;
-		//console.log(`${ctx.ship}: extracted ${response.data.extraction.yield.units} of ${response.data.extraction.yield.symbol}`);
-		if (response.data.cargo.units >= response.data.cargo.capacity * 0.9) return response;
+		const ship = dbShips.getShip(ctx.symbol);
+		if (ship.cargo.units >= ship.cargo.capacity * 0.8) return ship.cargo;
+		await ships.extract({symbol: ctx.symbol});
 	}
 }
 
