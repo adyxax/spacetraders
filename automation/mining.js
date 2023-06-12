@@ -25,8 +25,9 @@ export async function mineUntilFullOf(ctx) {
 async function mineUntilFull(ctx) {
 	while(true) {
 		const ship = dbShips.getShip(ctx.symbol);
-		if (ship.cargo.units >= ship.cargo.capacity * 0.8) return ship.cargo;
-		await ships.extract({symbol: ctx.symbol});
+		if (ship.cargo.units >= ship.cargo.capacity * 0.9) return ship.cargo;
+		if (await ships.extract({symbol: ctx.symbol}) === null)
+			ship = await ship(ctx); // refresh the ships status from the server just in case
 	}
 }
 
