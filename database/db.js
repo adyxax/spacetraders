@@ -5,6 +5,7 @@ const allMigrations = [
 	'database/000_init.sql',
 	'database/001_systems.sql',
 	'database/002_ships.sql',
+	'database/003_surveys.sql',
 ];
 
 const db = new Database(
