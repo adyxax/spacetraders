@@ -13,6 +13,7 @@ const db = new Database(
 	process.env.NODE_ENV === 'development' ? { verbose: console.log } : null
 );
 db.pragma('foreign_keys = ON');
+db.pragma('journal_mode = WAL');
 
 db.transaction(function migrate() {
 	let version;
