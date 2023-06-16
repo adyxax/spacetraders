@@ -2,12 +2,14 @@ import db from './db.js';
 
 const getSystemStatement = db.prepare(`SELECT data FROM systems WHERE data->>'symbol' = ?;`);
 const getSystemUpdatedStatement = db.prepare(`SELECT updated FROM systems WHERE data->>'symbol' = ?;`);
+const initStatement = db.prepare(`INSERT INTO config(key, value) VALUES ('systems_initialized', TRUE);`);
+const isInitStatement = db.prepare(`SELECT value FROM config WHERE key = 'systems_initialized'`);
 const setSystemStatement = db.prepare(`INSERT INTO systems(data) VALUES (json(?));`);
 const setSystemWaypointsStatement = db.prepare(`UPDATE systems SET data = (SELECT json_set(data, '$.waypoints', json(:waypoints)) FROM systems WHERE data->>'symbol' = :symbol), updated = :date WHERE data->>'symbol' = :symbol;`);
 
 export function init() {
 	try {
-		return db.prepare(`INSERT INTO config(key, value) VALUES ('systems_initialized', TRUE);`).run().lastInsertRowid;
+		return initStatement.run().lastInsertRowid;
 	} catch (err) {
 		return null;
 	}
@@ -15,7 +17,7 @@ export function init() {
 
 export function isInit() {
 	try {
-		return db.prepare(`SELECT value FROM config WHERE key = 'systems_initialized'`).get().value === '1';
+		return isInitStatement.get().value === '1';
 	} catch (err) {
 		return false;
 	}
