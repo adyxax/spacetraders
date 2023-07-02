@@ -1,3 +1,13 @@
+*.db
+*.db-shm
+*.db-wal
+
+dist*
+*.hi
+*.o
+*.cabal
+.stack-work/
+stack.yaml.lock
+*~
+
 node_modules
-spacetraders.db
-test.db
