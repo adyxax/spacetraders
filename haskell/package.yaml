@@ -23,6 +23,7 @@ dependencies:
 - http-types
 - sqlite-simple
 - text
+- time
 - raw-strings-qq
 
 ghc-options:

@@ -9,6 +9,7 @@ import qualified Data.Text as T
 import SpaceTraders.APIClient.Agent
 import SpaceTraders.Database
 import SpaceTraders.Database.Agents
+import SpaceTraders.Database.Contracts
 import SpaceTraders.Database.Tokens
 
 main :: IO ()
@@ -25,6 +26,7 @@ main = do
       case r of
         Right r' -> do
           setAgent conn $ agent r'
+          addContract conn $ contract r'
           let t = token r'
           setToken conn $ t
           return t

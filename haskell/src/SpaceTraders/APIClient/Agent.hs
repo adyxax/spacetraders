@@ -15,16 +15,18 @@ import Network.HTTP.Simple
 
 import SpaceTraders.APIClient.Client
 import SpaceTraders.Model.Agent
+import SpaceTraders.Model.Contract
 
 myAgent :: T.Text -> IO (Either APIError Agent)
 myAgent t = send $ setRequestPath "/v2/my/agent"
                  $ tokenReq t
 
-data RegisterRequest = RegisterRequest { symbol :: T.Text
-                                       , faction :: T.Text
+data RegisterRequest = RegisterRequest { faction :: T.Text
+                                       , symbol :: T.Text
                                        } deriving (ToJSON, Generic, Show)
-data RegisterMessage = RegisterMessage { token :: T.Text
-                                       , agent :: Agent
+data RegisterMessage = RegisterMessage { agent :: Agent
+                                       , contract :: Contract
+                                       , token :: T.Text
                                        } deriving (FromJSON, Generic, Show)
 
 register :: T.Text -> T.Text -> IO (Either APIError RegisterMessage)
