@@ -10,6 +10,7 @@ import SpaceTraders.APIClient.Agent
 import SpaceTraders.Database
 import SpaceTraders.Database.Agents
 import SpaceTraders.Database.Contracts
+import SpaceTraders.Database.Ships
 import SpaceTraders.Database.Tokens
 
 main :: IO ()
@@ -27,6 +28,7 @@ main = do
         Right r' -> do
           setAgent conn $ agent r'
           addContract conn $ contract r'
+          addShip conn $ ship r'
           let t = token r'
           setToken conn $ t
           return t

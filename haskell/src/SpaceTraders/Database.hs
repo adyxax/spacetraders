@@ -14,23 +14,24 @@ migrations :: [S.Query]
 migrations = [
   [r|CREATE TABLE schema_version (
        version INTEGER NOT NULL
-     );
-  |],
+     );|],
   [r|CREATE TABLE tokens (
        id INTEGER PRIMARY KEY,
        data TEXT NOT NULL
-     );
-  |],
+     );|],
   [r|CREATE TABLE agents (
        id INTEGER PRIMARY KEY,
        data TEXT NOT NULL
-     );
-  |],
+     );|],
   [r|CREATE TABLE contracts (
        id INTEGER PRIMARY KEY,
        data TEXT NOT NULL
-     );
-  |]]
+     );|],
+  [r|CREATE TABLE ships (
+       id INTEGER PRIMARY KEY,
+       data TEXT NOT NULL
+     );|],
+  [r|CREATE UNIQUE INDEX ships_data_symbol ON ships (json_extract(data, '$.symbol'));|]]
 
 close :: S.Connection -> IO ()
 close conn = S.close conn

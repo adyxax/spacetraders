@@ -15,6 +15,7 @@ import Network.HTTP.Simple
 
 import SpaceTraders.APIClient.Client
 import SpaceTraders.Model.Agent
+import SpaceTraders.Model.Ship(Ship)
 import SpaceTraders.Model.Contract
 
 myAgent :: T.Text -> IO (Either APIError Agent)
@@ -26,6 +27,7 @@ data RegisterRequest = RegisterRequest { faction :: T.Text
                                        } deriving (ToJSON, Generic, Show)
 data RegisterMessage = RegisterMessage { agent :: Agent
                                        , contract :: Contract
+                                       , ship :: Ship
                                        , token :: T.Text
                                        } deriving (FromJSON, Generic, Show)
 
