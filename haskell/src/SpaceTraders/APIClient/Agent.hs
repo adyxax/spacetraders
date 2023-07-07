@@ -14,7 +14,7 @@ import qualified Data.Text as T
 import Network.HTTP.Simple
 
 import SpaceTraders.APIClient.Client
-import SpaceTraders.Model.Agent
+import SpaceTraders.Model.Agent(Agent)
 import SpaceTraders.Model.Ship(Ship)
 import SpaceTraders.Model.Contract
 

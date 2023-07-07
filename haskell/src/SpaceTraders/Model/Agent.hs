@@ -3,8 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module SpaceTraders.Model.Agent
-  ( Agent(accountId, credits, headquarters)
-  , agentSymbol
+  ( Agent(..)
   ) where
 
 import Data.Aeson
@@ -13,10 +12,8 @@ import qualified Data.Text as T
 
 data Agent = Agent { accountId :: T.Text
                    , credits :: Integer
+                   --, faction :: Faction
                    , headquarters :: T.Text
                    , startingFaction :: T.Text
                    , symbol :: T.Text
                    } deriving (FromJSON, Generic, Show, ToJSON)
-
-agentSymbol :: Agent -> T.Text
-agentSymbol = symbol
