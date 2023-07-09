@@ -22,8 +22,8 @@ import Network.HTTP.Types.Status
 
 import SpaceTraders.APIClient.Errors
 
-data APIMessage = APIMessage { data_ :: Value } deriving (Show)
-instance FromJSON APIMessage where
+data FromJSON a => APIMessage a = APIMessage { data_ :: a } deriving (Show)
+instance FromJSON a => FromJSON (APIMessage a) where
   parseJSON (Object o) = APIMessage <$> o .: "data"
   parseJSON _ = mzero
 
@@ -49,9 +49,7 @@ send request = do
   if status >= 200 && status <= 299
     then case eitherDecode body of
       Left e -> return . Left $ APIError (-1000) Null (T.pack $ concat ["Error decoding JSON APIMessage: ", e])
-      Right r -> case fromJSONValue (data_ r) of
-        Left e -> return . Left $ APIError (-1001) Null (T.pack $ concat ["Error decoding JSON message contents: ", e])
-        Right m -> return $ Right m
+      Right r -> return . Right $ data_ r
     else case eitherDecode body of
       Left e -> return . Left $ APIError (-status) Null (T.pack $ concat ["Error decoding JSON APIError: ", e, ". Got HTTP body: ", show body])
       Right e -> case apiErrorCode e of
