@@ -7,7 +7,6 @@ module SpaceTraders.Model.Route
   , RouteEndpoint(..)
   ) where
 
-import Control.Monad
 import Data.Aeson
 import Data.Time
 import GHC.Generics
@@ -26,15 +25,15 @@ data RouteEndpoint = RouteEndpoint { routeEndpointType :: T.Text
                                    , y :: Int
                                    } deriving (Generic, Show)
 instance FromJSON RouteEndpoint where
-  parseJSON (Object o) = RouteEndpoint <$> o .: "type"
-                                       <*> o .: "symbol"
-                                       <*> o .: "systemSymbol"
-                                       <*> o .: "x"
-                                       <*> o .: "y"
-  parseJSON _ = mzero
+  parseJSON = withObject "RouteEndpoint" $ \o ->
+    RouteEndpoint <$> o .: "type"
+                  <*> o .: "symbol"
+                  <*> o .: "systemSymbol"
+                  <*> o .: "x"
+                  <*> o .: "y"
 instance ToJSON RouteEndpoint where
   toEncoding (RouteEndpoint t s ss xx yy) = pairs ( "type" .= t
-                                          <> "symbol" .= s
-                                          <> "systemSymbol" .= ss
-                                          <> "x" .= xx
-                                          <> "y" .= yy )
+                                                 <> "symbol" .= s
+                                                 <> "systemSymbol" .= ss
+                                                 <> "x" .= xx
+                                                 <> "y" .= yy )

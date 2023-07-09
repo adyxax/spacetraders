@@ -6,7 +6,6 @@ module SpaceTraders.APIClient.Errors
   ) where
 
 import Control.Exception
-import Control.Monad
 import Data.Aeson
 import Data.Time
 import qualified Data.Text as T
@@ -16,7 +15,7 @@ data APIError = APIError Int T.Text Value
               deriving Show
 instance Exception APIError
 instance FromJSON APIError where
-  parseJSON (Object o) = do
+  parseJSON = withObject "APIError" $ \o -> do
     e <- o .: "error"
     code <- e .: "code"
     d <- e .: "data"
@@ -25,7 +24,6 @@ instance FromJSON APIError where
       _ -> APIError <$> pure code
                     <*> e .: "message"
                     <*> pure d
-  parseJSON _ = mzero
 
 data RateLimit = RateLimit { limitBurst :: Int
                            , limitPerSecond :: Int
@@ -35,11 +33,10 @@ data RateLimit = RateLimit { limitBurst :: Int
                            , retryAfter :: Double
                            } deriving Show
 instance FromJSON RateLimit where
-  parseJSON (Object o) = do
+  parseJSON = withObject "RateLimit" $ \o ->
     RateLimit <$> o .: "limitBurst"
               <*> o .: "limitPerSecond"
               <*> o .: "type"
               <*> o .: "remaining"
               <*> o .: "reset"
               <*> o .: "retryAfter"
-  parseJSON _ = mzero

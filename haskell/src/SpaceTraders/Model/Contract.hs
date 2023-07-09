@@ -9,7 +9,6 @@ module SpaceTraders.Model.Contract
   , Terms(..)
   ) where
 
-import Control.Monad
 import Data.Aeson
 import Data.Time
 import GHC.Generics
@@ -25,15 +24,15 @@ data Contract = Contract { accepted :: Bool
                          , terms :: Terms
                          } deriving (Generic, Show)
 instance FromJSON Contract where
-  parseJSON (Object o) = Contract <$> o .: "accepted"
-                                  <*> o .: "id"
-                                  <*> o .: "type"
-                                  <*> o .: "expiration"
-                                  <*> o .: "deadlineToAccept"
-                                  <*> o .: "factionSymbol"
-                                  <*> o .: "fulfilled"
-                                  <*> o .: "terms"
-  parseJSON _ = mzero
+  parseJSON = withObject "Contract" $ \o ->
+    Contract <$> o .: "accepted"
+             <*> o .: "id"
+             <*> o .: "type"
+             <*> o .: "expiration"
+             <*> o .: "deadlineToAccept"
+             <*> o .: "factionSymbol"
+             <*> o .: "fulfilled"
+             <*> o .: "terms"
 instance ToJSON Contract where
   toEncoding (Contract a i ty e d fa fu te) = pairs ( "accepted" .= a
                                                    <> "id" .= i

@@ -11,7 +11,6 @@ module SpaceTraders.APIClient.Client
   ) where
 
 import Control.Concurrent
-import Control.Monad
 import Data.Aeson
 import Data.Aeson.Types
 import qualified Data.Text as T
@@ -23,8 +22,7 @@ import SpaceTraders.APIClient.Errors
 
 data FromJSON a => APIMessage a = APIMessage { data_ :: a } deriving (Show)
 instance FromJSON a => FromJSON (APIMessage a) where
-  parseJSON (Object o) = APIMessage <$> o .: "data"
-  parseJSON _ = mzero
+  parseJSON = withObject "APIMessage" $ \o -> APIMessage <$> o .: "data"
 
 defaultReq :: Request
 defaultReq = setRequestHost "api.spacetraders.io"
