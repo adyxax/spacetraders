@@ -11,7 +11,6 @@ module SpaceTraders.APIClient.Client
   ) where
 
 import Control.Concurrent
-import Control.Exception
 import Control.Monad
 import Data.Aeson
 import Data.Aeson.Types
@@ -48,21 +47,11 @@ send request = do
       body = getResponseBody response
   if status >= 200 && status <= 299
     then case eitherDecode body of
-      Left e -> return . Left $ APIError (-1000) Null (T.pack $ concat ["Error decoding JSON APIMessage: ", e])
+      Left e -> return . Left $ APIError (-1000) (T.pack $ concat ["Error decoding JSON APIMessage: ", e]) Null
       Right r -> return . Right $ data_ r
     else case eitherDecode body of
-      Left e -> return . Left $ APIError (-status) Null (T.pack $ concat ["Error decoding JSON APIError: ", e, ". Got HTTP body: ", show body])
-      Right e -> case apiErrorCode e of
-        429 -> do -- We are being rate limited
-          let d = apiErrorData e
-          w <- case fromJSONValue d of
-            Left _ -> throwIO e
-            Right e' -> return $ retryAfter e'
-          threadDelay (1_000_000 * (round w))
-          send request
-        _ -> return $ Left e
-
---handleAPIError :: SomeException -> IO (Maybe RegisterMessage)
---handleAPIError e = do
---  print e
---  return Nothing
+      Left e -> return . Left $ APIError (-status) (T.pack $ concat ["Error decoding JSON APIError: ", e, ". Got HTTP body: ", show body]) Null
+      Right (APIRateLimit r) -> do
+        threadDelay (1_000_000 * (round $ retryAfter r))
+        send request
+      Right e -> return $ Left e
