@@ -18,7 +18,7 @@ import SpaceTraders.Model.Agent(Agent)
 import SpaceTraders.Model.Ship(Ship)
 import SpaceTraders.Model.Contract
 
-myAgent :: T.Text -> IO (Either APIError Agent)
+myAgent :: T.Text -> IO (APIResponse Agent)
 myAgent t = send $ setRequestPath "/v2/my/agent"
                  $ tokenReq t
 
@@ -31,7 +31,7 @@ data RegisterMessage = RegisterMessage { agent :: Agent
                                        , token :: T.Text
                                        } deriving (FromJSON, Generic, Show)
 
-register :: T.Text -> T.Text -> IO (Either APIError RegisterMessage)
+register :: T.Text -> T.Text -> IO (APIResponse RegisterMessage)
 register s f = send $ setRequestPath "/v2/register"
                     $ setRequestMethod "POST"
                     $ setRequestBodyJSON RegisterRequest{symbol = s, faction = f}

@@ -31,7 +31,12 @@ migrations = [
        id INTEGER PRIMARY KEY,
        data TEXT NOT NULL
      );|],
-  [r|CREATE UNIQUE INDEX ships_data_symbol ON ships (json_extract(data, '$.symbol'));|]]
+  [r|CREATE UNIQUE INDEX ships_data_symbol ON ships (json_extract(data, '$.symbol'));|],
+  [r|CREATE TABLE systems (
+       id INTEGER PRIMARY KEY,
+       data TEXT NOT NULL
+     );|],
+  [r|CREATE UNIQUE INDEX systems_data_symbol ON systems (json_extract(data, '$.symbol'));|]]
 
 close :: S.Connection -> IO ()
 close conn = S.close conn

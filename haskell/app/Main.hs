@@ -7,6 +7,7 @@ import qualified Database.SQLite.Simple as S
 import qualified Data.Text as T
 
 import SpaceTraders.APIClient.Agent
+import SpaceTraders.APIClient.Systems
 import SpaceTraders.Database
 import SpaceTraders.Database.Agents
 import SpaceTraders.Database.Contracts
@@ -19,6 +20,8 @@ main = do
   t <- getToken conn `catch` registerNow conn
   ma <- myAgent t
   print ma
+  s <- listSystems t conn
+  print s
   close conn
   where
     registerNow :: S.Connection -> SomeException -> IO (T.Text)
