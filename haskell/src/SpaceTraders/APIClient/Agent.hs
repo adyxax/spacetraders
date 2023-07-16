@@ -13,14 +13,17 @@ import GHC.Generics
 import qualified Data.Text as T
 import Network.HTTP.Simple
 
+import qualified SpaceTraders as ST
 import SpaceTraders.APIClient.Client
 import SpaceTraders.Model.Agent(Agent)
 import SpaceTraders.Model.Ship(Ship)
 import SpaceTraders.Model.Contract
 
-myAgent :: T.Text -> IO (APIResponse Agent)
-myAgent t = send $ setRequestPath "/v2/my/agent"
-                 $ tokenReq t
+myAgent :: ST.SpaceTradersT (APIResponse Agent)
+myAgent = do
+  c <- ST.ask
+  ST.liftIO $ send $ setRequestPath "/v2/my/agent"
+            $ tokenReq (ST.token c)
 
 data RegisterRequest = RegisterRequest { faction :: T.Text
                                        , symbol :: T.Text

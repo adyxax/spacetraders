@@ -1,17 +1,22 @@
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module SpaceTraders.APIClient.Errors
   ( APIError(..)
   , RateLimit(..)
+  , ResetHappened(..)
   ) where
 
 import Control.Exception
 import Data.Aeson
 import Data.Time
 import qualified Data.Text as T
+import GHC.Generics
 
 data APIError = APIError Int T.Text Value
               | APIRateLimit RateLimit
+              | APIResetHappened ResetHappened
               deriving Show
 instance Exception APIError
 instance FromJSON APIError where
@@ -20,6 +25,7 @@ instance FromJSON APIError where
     code <- e .: "code"
     d <- e .: "data"
     case code of
+      401 -> APIResetHappened <$> parseJSON d
       429 -> APIRateLimit <$> parseJSON d
       _ -> APIError <$> pure code
                     <*> e .: "message"
@@ -40,3 +46,7 @@ instance FromJSON RateLimit where
               <*> o .: "remaining"
               <*> o .: "reset"
               <*> o .: "retryAfter"
+
+data ResetHappened = ResetHappened { actual :: T.Text
+                                   , expected :: T.Text
+                                   } deriving (FromJSON, Generic, Show, ToJSON)
