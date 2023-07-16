@@ -23,6 +23,8 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Network.HTTP.Simple
 import Network.HTTP.Types.Status
+import System.Environment
+import System.Posix.Process
 
 import SpaceTraders.APIClient.Errors
 import SpaceTraders.APIClient.Pagination
@@ -81,4 +83,9 @@ sendPaginated request = do
       Right (APIRateLimit r) -> do
         threadDelay (1_000_000 * (round $ retryAfter r))
         sendPaginated request
+      Right (APIResetHappened _) -> do
+        p <- getExecutablePath
+        a <- getArgs
+        e <- getEnvironment
+        executeFile p False a (Just e)
       Right e -> return $ Left e

@@ -27,6 +27,7 @@ dependencies:
 - text
 - time
 - transformers
+- unix
 
 ghc-options:
 - -Wall
