@@ -1,13 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module SpaceTraders.Database.Agents
-  ( setAgent
+  ( addAgent
   ) where
 
+import Control.Monad.Reader
 import Data.Aeson
 import qualified Database.SQLite.Simple as S
 
+import SpaceTraders
 import SpaceTraders.Model.Agent
 
-setAgent :: S.Connection -> Agent -> IO ()
-setAgent conn agent = S.execute conn "INSERT INTO agents(data) VALUES (json(?));" (S.Only (encode agent))
+addAgent :: (HasDatabaseConn env, MonadIO m, MonadReader env m) => Agent -> m ()
+addAgent agent = do
+  env <- ask
+  liftIO $ S.execute (getConn env) "INSERT INTO agents(data) VALUES (json(?));" (S.Only (encode agent))

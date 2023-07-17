@@ -8,13 +8,13 @@ module SpaceTraders.APIClient.Client
   , APIResponse
   , defaultReq
   , fromJSONValue
-  , paginatedReq
   , send
   , sendPaginated
   , tokenReq
   ) where
 
 import Control.Concurrent
+import Control.Monad.Reader
 import Data.Aeson
 import Data.Aeson.Types
 import qualified Data.ByteString as B
@@ -23,9 +23,8 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Network.HTTP.Simple
 import Network.HTTP.Types.Status
-import System.Environment
-import System.Posix.Process
 
+import SpaceTraders
 import SpaceTraders.APIClient.Errors
 import SpaceTraders.APIClient.Pagination
 
@@ -47,45 +46,44 @@ defaultReq = setRequestHost "api.spacetraders.io"
            $ setRequestHeader "Content-Type" ["application/json"]
            $ defaultRequest
 
-paginatedReq :: T.Text -> Maybe Pagination -> Request
-paginatedReq token Nothing = setRequestQueryString [("limit", Just "20")]
-                           $ tokenReq token
-paginatedReq token (Just myPage) = setRequestQueryString [("limit", Just . int2ByteString $ limit myPage), ("page", Just . int2ByteString $ page myPage)]
-                                 $ tokenReq token
-  where
-    int2ByteString = B.pack . map B.c2w . show
-
 tokenReq :: T.Text -> Request
-tokenReq token = setRequestHeader "Authorization" [T.encodeUtf8 $ "Bearer " <> token]
-               $ defaultReq
+tokenReq token = setRequestHeader "Authorization" [T.encodeUtf8 $ "Bearer " <> token] defaultReq
 
 fromJSONValue :: FromJSON a => Value -> Either String a
 fromJSONValue = parseEither parseJSON
 
-send :: FromJSON a => Request -> IO (APIResponse a)
-send request = do
-  response <- sendPaginated request
+int2ByteString :: Int -> B.ByteString
+int2ByteString = B.pack . map B.c2w . show
+
+send :: (FromJSON a, HasRequest env, MonadIO m, MonadReader env m) => (Request -> Request) -> m (APIResponse a)
+send requestBuilder = do
+  response <- sendPaginated Nothing requestBuilder
   case response of
     Left e -> return $ Left e
     Right (APIMessage d _) -> return $ Right d
 
-sendPaginated :: FromJSON a => Request -> IO (APIPaginatedResponse a)
-sendPaginated request = do
-  response <- httpLbs request
-  let status = statusCode $ getResponseStatus response
-      body = getResponseBody response
-  if status >= 200 && status <= 299
-    then case eitherDecode body of
-      Left e -> return . Left $ APIError (-1000) (T.pack $ concat ["Error decoding JSON APIMessage: ", e]) Null
-      Right r -> return $ Right r
-    else case eitherDecode body of
-      Left e -> return . Left $ APIError (-status) (T.pack $ concat ["Error decoding JSON APIError: ", e, ". Got HTTP body: ", show body]) Null
-      Right (APIRateLimit r) -> do
-        threadDelay (1_000_000 * (round $ retryAfter r))
-        sendPaginated request
-      Right (APIResetHappened _) -> do
-        p <- getExecutablePath
-        a <- getArgs
-        e <- getEnvironment
-        executeFile p False a (Just e)
-      Right e -> return $ Left e
+sendPaginated :: (FromJSON a, HasRequest env, MonadIO m, MonadReader env m) => Maybe Pagination -> (Request -> Request) -> m (APIPaginatedResponse a)
+sendPaginated pagination requestBuilder = do
+  env <- ask
+  let request = requestBuilder $ getRequest env
+      request' = case pagination of
+        Just myPage -> setRequestQueryString [("limit", Just . int2ByteString $ limit myPage), ("page", Just . int2ByteString $ page myPage)]
+                                           $ request
+        Nothing -> request
+  sendPaginated' request'
+  where
+    sendPaginated' :: (FromJSON a, MonadIO m) => Request -> m (APIPaginatedResponse a)
+    sendPaginated' request = do
+      response <- liftIO $ httpLbs request
+      let status = statusCode $ getResponseStatus response
+          body = getResponseBody response
+      if status >= 200 && status <= 299
+        then case eitherDecode body of
+          Left e -> return . Left $ APIError (-1000) (T.pack $ concat ["Error decoding JSON APIMessage: ", e]) Null
+          Right r -> return $ Right r
+        else case eitherDecode body of
+          Left e -> return . Left $ APIError (-status) (T.pack $ concat ["Error decoding JSON APIError: ", e, ". Got HTTP body: ", show body]) Null
+          Right (APIRateLimit r) -> do
+            liftIO $ threadDelay (1_000_000 * (round $ retryAfter r))
+            sendPaginated' request
+          Right e -> return $ Left e

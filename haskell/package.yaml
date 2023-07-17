@@ -22,11 +22,11 @@ dependencies:
 - directory
 - http-conduit
 - http-types
+- mtl
 - raw-strings-qq
 - sqlite-simple
 - text
 - time
-- transformers
 - unix
 
 ghc-options:

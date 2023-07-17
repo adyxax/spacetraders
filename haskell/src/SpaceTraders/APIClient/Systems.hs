@@ -7,28 +7,26 @@ module SpaceTraders.APIClient.Systems
   ) where
 
 import Control.Exception
-import qualified Data.Text as T
-import qualified Database.SQLite.Simple as S
 import Network.HTTP.Simple
 
+import SpaceTraders
 import SpaceTraders.APIClient.Client
 import SpaceTraders.APIClient.Pagination
 import SpaceTraders.Database.Systems
 import SpaceTraders.Model.System(System)
 
-listSystems :: T.Text -> S.Connection -> IO (APIResponse [System])
-listSystems t conn = do
-  s <- getSystems conn
+listSystems :: SpaceTradersT (APIResponse [System])
+listSystems = do
+  s <- getSystems
   listSystems' Pagination{limit=20, page=((length s) `div` 20) + 1, total=0}
   where
-    listSystems' :: Pagination -> IO (APIResponse [System])
+    listSystems' :: Pagination -> SpaceTradersT (APIResponse [System])
     listSystems' p = do
-      resp <- sendPaginated $ setRequestPath "/v2/systems"
-                            $ paginatedReq t (Just p)
+      resp <- sendPaginated (Just p) $ setRequestPath "/v2/systems"
       case resp of
-        Left e -> throwIO e
-        Right (APIMessage [] _) -> Right <$> getSystems conn
+        Left e -> throw e
+        Right (APIMessage [] _) -> Right <$> getSystems
         Right (APIMessage r (Just p')) -> do
-          addSystems conn r
+          addSystems r
           listSystems' (nextPage p')
         _ -> undefined

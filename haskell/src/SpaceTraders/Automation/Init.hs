@@ -6,53 +6,55 @@ module SpaceTraders.Automation.Init
   ) where
 
 import Control.Exception
+import Control.Monad.Reader
 import qualified Database.SQLite.Simple as S
 import qualified Data.Text as T
 import System.Directory
 
 import SpaceTraders
-import qualified SpaceTraders.APIClient.Agent as STAA
-import SpaceTraders.APIClient.Errors
+import SpaceTraders.APIClient.Agent
+import SpaceTraders.APIClient.Client
 import SpaceTraders.Database
 import SpaceTraders.Database.Agents
 import SpaceTraders.Database.Contracts
 import SpaceTraders.Database.Ships
 import SpaceTraders.Database.Tokens
 
-deinitST :: Config -> IO ()
-deinitST config = do
-  close $ conn config
+deinitST :: Env -> IO ()
+deinitST env = do
+  close $ getConn env
 
-initST :: IO Config
+initST :: IO Env
 initST = do
-  c <- open
-  t <- getToken c `catch` handleNoToken c
-  ma <- runSpaceTradersT STAA.myAgent (Config c t)
+  conn <- open
+  t <- runReaderT getToken conn `catch` handleNoToken conn
+  let env = Env conn (tokenReq t)
+  ma <- runSpaceTradersT myAgent env
   case ma of
-    Left (APIResetHappened _) -> wipe c
+    Left (APIResetHappened _) -> wipe conn
     Left e -> throwIO e
-    _ -> return $ Config c t
+    _ -> return $ env
   where
     handleNoToken :: S.Connection -> SomeException -> IO T.Text
-    handleNoToken c _ = register c
+    handleNoToken conn _ = runReaderT registerST (Env conn defaultReq)
 
-register :: S.Connection -> IO (T.Text)
-register c = do
-  r <- STAA.register "ADYXAX" "COSMIC"
+registerST :: SpaceTradersT (T.Text)
+registerST = do
+  r <- register "ADYXAX" "COSMIC"
   case r of
     Right r' -> do
-      setAgent c $ STAA.agent r'
-      addContract c $ STAA.contract r'
-      addShip c $ STAA.ship r'
-      let t = STAA.token r'
-      setToken c $ t
+      addAgent $ agent r'
+      addContract $ contract r'
+      addShip $ ship r'
+      let t = token r'
+      addToken t
       return t
-    Left e' -> throwIO e'
+    Left e' -> throw e'
 
-wipe :: S.Connection -> IO Config
+wipe :: S.Connection -> IO Env
 wipe c = do
       close c
       removeFile "spacetraders.db"
       conn' <- open
-      t <- register conn'
-      return $ Config conn' t
+      t <- runReaderT registerST (Env conn' defaultReq)
+      return $ Env conn' (tokenReq t)
