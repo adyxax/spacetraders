@@ -7,7 +7,6 @@ module SpaceTraders.APIClient.Client
   , APIPaginatedResponse
   , APIResponse
   , defaultReq
-  , fromJSONValue
   , send
   , sendPaginated
   , tokenReq
@@ -16,9 +15,6 @@ module SpaceTraders.APIClient.Client
 import Control.Concurrent
 import Control.Monad.Reader
 import Data.Aeson
-import Data.Aeson.Types
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Internal as B
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Network.HTTP.Simple
@@ -27,6 +23,7 @@ import Network.HTTP.Types.Status
 import SpaceTraders
 import SpaceTraders.APIClient.Errors
 import SpaceTraders.APIClient.Pagination
+import SpaceTraders.Utils
 
 data FromJSON a => APIMessage a = APIMessage { messageData :: a
                                              , messagePagination :: Maybe Pagination
@@ -48,12 +45,6 @@ defaultReq = setRequestHost "api.spacetraders.io"
 
 tokenReq :: T.Text -> Request
 tokenReq token = setRequestHeader "Authorization" [T.encodeUtf8 $ "Bearer " <> token] defaultReq
-
-fromJSONValue :: FromJSON a => Value -> Either String a
-fromJSONValue = parseEither parseJSON
-
-int2ByteString :: Int -> B.ByteString
-int2ByteString = B.pack . map B.c2w . show
 
 send :: (FromJSON a, HasRequest env, MonadIO m, MonadReader env m) => (Request -> Request) -> m (APIResponse a)
 send requestBuilder = do

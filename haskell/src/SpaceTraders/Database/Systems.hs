@@ -11,8 +11,8 @@ import Data.Maybe
 import qualified Database.SQLite.Simple as S
 
 import SpaceTraders
-import SpaceTraders.Database.Utils
 import SpaceTraders.Model.System
+import SpaceTraders.Utils
 
 addSystems :: (HasDatabaseConn env, MonadIO m, MonadReader env m) => [System] -> m ()
 addSystems systems = do
@@ -23,5 +23,5 @@ addSystems systems = do
 getSystems :: (HasDatabaseConn env, MonadIO m, MonadReader env m) => m [System]
 getSystems = do
   env <- ask
-  ret <- liftIO $ S.query_ (getConn env) "SELECT data from systems;"
+  ret <- liftIO $ S.query_ (getConn env) "SELECT data FROM systems;"
   return . catMaybes $ map (decodeText . head) ret
