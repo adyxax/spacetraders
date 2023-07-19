@@ -14,10 +14,12 @@ import System.Directory
 import SpaceTraders
 import SpaceTraders.APIClient.Agent
 import SpaceTraders.APIClient.Client
+import SpaceTraders.APIClient.Contracts
+import SpaceTraders.APIClient.Errors
+import SpaceTraders.APIClient.Ships
 import SpaceTraders.Database
 import SpaceTraders.Database.Agents
 import SpaceTraders.Database.Contracts
-import SpaceTraders.Database.Ships
 import SpaceTraders.Database.Tokens
 
 deinitST :: Env -> IO ()
@@ -29,11 +31,17 @@ initST = do
   conn <- open
   t <- runReaderT getToken conn `catch` handleNoToken conn
   let env = Env conn (tokenReq t)
-  ma <- runSpaceTradersT myAgent env
-  case ma of
+  ma <- runReaderT getAgent conn -- We compare the agent state in the database
+  ma' <- runSpaceTradersT myAgent env -- with the one on the servers
+  case ma' of
     Left (APIResetHappened _) -> wipe conn
     Left e -> throwIO e
-    _ -> return $ env
+    Right ma'' -> do
+      when (ma /= ma'') $ do
+        _ <- runReaderT myContracts env -- refresh contracts
+        _ <- runReaderT myShips env -- refresh ships
+        runReaderT (setAgent ma'') conn -- store the fresh agent state
+      return $ env
   where
     handleNoToken :: S.Connection -> SomeException -> IO T.Text
     handleNoToken conn _ = runReaderT registerST (Env conn defaultReq)
@@ -45,7 +53,7 @@ registerST = do
     Right r' -> do
       addAgent $ agent r'
       addContract $ contract r'
-      addShip $ ship r'
+      _ <- myShips -- in order to fetch the starting probe that is not advertised in the register message
       let t = token r'
       addToken t
       return t

@@ -16,4 +16,4 @@ data Agent = Agent { accountId :: T.Text
                    , headquarters :: T.Text
                    , startingFaction :: T.Text
                    , symbol :: T.Text
-                   } deriving (FromJSON, Generic, Show, ToJSON)
+                   } deriving (Eq, FromJSON, Generic, Show, ToJSON)

@@ -3,7 +3,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module SpaceTraders.APIClient.Systems
-  ( listSystems
+  ( initSystems
   ) where
 
 import Control.Exception
@@ -15,8 +15,8 @@ import SpaceTraders.APIClient.Pagination
 import SpaceTraders.Database.Systems
 import SpaceTraders.Model.System(System)
 
-listSystems :: SpaceTradersT (APIResponse [System])
-listSystems = do
+initSystems :: SpaceTradersT (APIResponse [System])
+initSystems = do
   s <- getSystems
   listSystems' Pagination{limit=20, page=((length s) `div` 20) + 1, total=0}
   where
@@ -25,8 +25,8 @@ listSystems = do
       resp <- sendPaginated (Just p) $ setRequestPath "/v2/systems"
       case resp of
         Left e -> throw e
-        Right (APIMessage [] _) -> Right <$> getSystems
         Right (APIMessage r (Just p')) -> do
           addSystems r
-          listSystems' (nextPage p')
+          if (limit p' * page p' < total p') then listSystems' (nextPage p')
+                                             else Right <$> getSystems
         _ -> undefined

@@ -2,8 +2,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module SpaceTraders.APIClient.Client
-  ( APIError(..)
-  , APIMessage(..)
+  ( APIMessage(..)
   , APIPaginatedResponse
   , APIResponse
   , defaultReq
