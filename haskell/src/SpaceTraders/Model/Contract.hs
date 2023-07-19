@@ -34,14 +34,14 @@ instance FromJSON Contract where
              <*> o .: "fulfilled"
              <*> o .: "terms"
 instance ToJSON Contract where
-  toEncoding (Contract a i ty e d fa fu te) = pairs ( "accepted" .= a
-                                                   <> "id" .= i
-                                                   <> "type" .= ty
-                                                   <> "expiration" .= e
-                                                   <> "deadlineToAccept" .= d
-                                                   <> "factionSymbol" .= fa
-                                                   <> "fulfilled" .= fu
-                                                   <> "terms" .= te )
+  toJSON (Contract a i ty e d fa fu te) = object [ "accepted" .= a
+                                                 , "id" .= i
+                                                 , "type" .= ty
+                                                 , "expiration" .= e
+                                                 , "deadlineToAccept" .= d
+                                                 , "factionSymbol" .= fa
+                                                 , "fulfilled" .= fu
+                                                 , "terms" .= te ]
 
 data Delivery = Delivery { destinationSymbol :: T.Text
                          , tradeSymbol :: T.Text

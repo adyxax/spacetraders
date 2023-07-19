@@ -29,9 +29,9 @@ instance FromJSON System where
            <*> o .: "y"
            <*> o .: "waypoints"
 instance ToJSON System where
-  toEncoding (System ss s t xx yy w) = pairs ( "sectorSymbol" .= ss
-                                          <> "symbol" .= s
-                                          <> "type" .= t
-                                          <> "x" .= xx
-                                          <> "y" .= yy
-                                          <> "waypoints" .= w )
+  toJSON (System ss s t xx yy w) = object [ "sectorSymbol" .= ss
+                                          , "symbol" .= s
+                                          , "type" .= t
+                                          , "x" .= xx
+                                          , "y" .= yy
+                                          , "waypoints" .= w ]

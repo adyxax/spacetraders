@@ -32,8 +32,8 @@ instance FromJSON RouteEndpoint where
                   <*> o .: "x"
                   <*> o .: "y"
 instance ToJSON RouteEndpoint where
-  toEncoding (RouteEndpoint t s ss xx yy) = pairs ( "type" .= t
-                                                 <> "symbol" .= s
-                                                 <> "systemSymbol" .= ss
-                                                 <> "x" .= xx
-                                                 <> "y" .= yy )
+  toJSON (RouteEndpoint t s ss xx yy) = object [ "type" .= t
+                                               , "symbol" .= s
+                                               , "systemSymbol" .= ss
+                                               , "x" .= xx
+                                               , "y" .= yy ]

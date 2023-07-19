@@ -22,7 +22,7 @@ instance FromJSON Waypoint where
              <*> o .: "x"
              <*> o .: "y"
 instance ToJSON Waypoint where
-  toEncoding (Waypoint s t xx yy) = pairs ( "symbol" .= s
-                                         <> "type" .= t
-                                         <> "x" .= xx
-                                         <> "y" .= yy )
+  toJSON (Waypoint s t xx yy) = object [ "symbol" .= s
+                                       , "type" .= t
+                                       , "x" .= xx
+                                       , "y" .= yy ]
