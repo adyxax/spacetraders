@@ -7,7 +7,6 @@ module SpaceTraders.Database.Systems
 
 import Control.Monad.Reader
 import Data.Aeson
-import Data.Maybe
 import qualified Database.SQLite.Simple as S
 
 import SpaceTraders
@@ -21,7 +20,4 @@ addSystems systems = do
   liftIO $ S.withTransaction conn $ S.executeMany conn "INSERT INTO systems(data) VALUES (json(?));" $ S.Only <$> map encode systems
 
 getSystems :: (HasDatabaseConn env, MonadIO m, MonadReader env m) => m [System]
-getSystems = do
-  env <- ask
-  ret <- liftIO $ S.query_ (getConn env) "SELECT data FROM systems;"
-  return . catMaybes $ map (decodeText . head) ret
+getSystems = query_ "SELECT data FROM systems;"
