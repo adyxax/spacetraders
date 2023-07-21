@@ -11,9 +11,11 @@ module SpaceTraders.APIClient.Client
   , tokenReq
   ) where
 
-import Control.Concurrent
+import Control.Concurrent.Thread.Delay
+import Control.Monad
 import Control.Monad.Reader
 import Data.Aeson
+import Data.IORef
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Network.HTTP.Simple
@@ -62,9 +64,17 @@ sendPaginated pagination requestBuilder = do
         Nothing -> request
   sendPaginated' request'
   where
-    sendPaginated' :: (FromJSON a, MonadIO m) => Request -> m (APIPaginatedResponse a)
+    sendPaginated' :: (FromJSON a, HasRequest env, MonadIO m, MonadReader env m) => Request -> m (APIPaginatedResponse a)
     sendPaginated' request = do
-      response <- liftIO $ httpLbs request
+      env <- ask
+      let iref = getLastAPICall env
+      response <- liftIO $ do
+        now <- microSinceEpoch
+        prev <- readIORef iref
+        let diff = prev + 400_000 - now
+        when (diff > 0) (delay diff)
+        writeIORef iref now
+        httpLbs request
       let status = statusCode $ getResponseStatus response
           body = getResponseBody response
       if status >= 200 && status <= 299
@@ -74,6 +84,6 @@ sendPaginated pagination requestBuilder = do
         else case eitherDecode body of
           Left e -> return . Left $ APIError (-status) (T.pack $ concat ["Error decoding JSON APIError: ", e, ". Got HTTP body: ", show body]) Null
           Right (APIRateLimit r) -> do
-            liftIO $ threadDelay (1_000_000 * (round $ retryAfter r))
+            liftIO $ delay (1_000_000 * (round $ retryAfter r))
             sendPaginated' request
           Right e -> return $ Left e

@@ -30,7 +30,7 @@ initST :: IO Env
 initST = do
   conn <- open
   t <- runReaderT getToken conn `catch` handleNoToken conn
-  let env = Env conn (tokenReq t)
+  env <- newEnv conn (tokenReq t)
   ma <- runReaderT getAgent conn -- We compare the agent state in the database
   ma' <- runSpaceTradersT myAgent env -- with the one on the servers
   case ma' of
@@ -44,7 +44,7 @@ initST = do
       return $ env
   where
     handleNoToken :: S.Connection -> SomeException -> IO T.Text
-    handleNoToken conn _ = runReaderT registerST (Env conn defaultReq)
+    handleNoToken conn _ = newEnv conn defaultReq >>= runReaderT registerST
 
 registerST :: SpaceTradersT (T.Text)
 registerST = do
@@ -64,5 +64,5 @@ wipe c = do
       close c
       removeFile "spacetraders.db"
       conn' <- open
-      t <- runReaderT registerST (Env conn' defaultReq)
-      return $ Env conn' (tokenReq t)
+      t <- newEnv conn' defaultReq >>= runReaderT registerST
+      newEnv conn' (tokenReq t)

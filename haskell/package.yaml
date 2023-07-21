@@ -27,6 +27,7 @@ dependencies:
 - sqlite-simple
 - text
 - time
+- unbounded-delays
 - unix
 
 ghc-options:
