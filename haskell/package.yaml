@@ -20,10 +20,10 @@ dependencies:
 - base >= 4.7 && < 5
 - bytestring
 - directory
+- file-embed
 - http-conduit
 - http-types
 - mtl
-- raw-strings-qq
 - sqlite-simple
 - text
 - time
