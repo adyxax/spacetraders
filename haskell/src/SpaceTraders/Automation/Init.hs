@@ -20,6 +20,7 @@ import SpaceTraders.APIClient.Ships
 import SpaceTraders.Database
 import SpaceTraders.Database.Agents
 import SpaceTraders.Database.Contracts
+import SpaceTraders.Database.Ships
 import SpaceTraders.Database.Tokens
 
 deinitST :: Env -> IO ()
@@ -53,6 +54,7 @@ registerST = do
     Right r' -> do
       addAgent $ agent r'
       addContract $ contract r'
+      addShip $ ship r'
       _ <- myShips -- in order to fetch the starting probe that is not advertised in the register message
       let t = token r'
       addToken t

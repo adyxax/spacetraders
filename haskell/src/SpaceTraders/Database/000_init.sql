@@ -15,7 +15,8 @@ CREATE TABLE contracts (
 );
 CREATE TABLE ships (
   id INTEGER PRIMARY KEY,
-  data TEXT NOT NULL
+  data TEXT NOT NULL,
+  available DATE NOT NULL
 );
 CREATE UNIQUE INDEX ships_data_symbol ON ships (json_extract(data, '$.symbol'));
 CREATE TABLE systems (

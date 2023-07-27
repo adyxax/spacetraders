@@ -22,6 +22,12 @@ import qualified Database.SQLite.Simple as S
 
 import SpaceTraders
 
+count :: (HasDatabaseConn env, MonadFail m, MonadReader env m, MonadIO m, S.ToRow t) => S.Query -> t -> m Int
+count q t = do
+  env <- ask
+  [[ret]] <- liftIO (S.query (getConn env) q t :: IO [[Int]])
+  return ret
+
 decodeText :: FromJSON a => T.Text -> Maybe a
 decodeText = decode . B.toLazyByteString . T.encodeUtf8Builder
 
@@ -38,12 +44,6 @@ int2ByteString = B.pack . map B.c2w . show
 
 one_ :: (FromJSON b, HasDatabaseConn env, MonadReader env m, MonadIO m) => S.Query -> m b
 one_ q = query_ q >>= pure . head
-
-count :: (HasDatabaseConn env, MonadFail m, MonadReader env m, MonadIO m, S.ToRow t) => S.Query -> t -> m Int
-count q t = do
-  env <- ask
-  [[ret]] <- liftIO (S.query (getConn env) q t :: IO [[Int]])
-  return ret
 
 query :: (FromJSON b, HasDatabaseConn env, MonadReader env m, MonadIO m, S.ToRow t) => S.Query -> t -> m [b]
 query q t = do
