@@ -9,6 +9,7 @@ import System.Posix.Process
 import SpaceTraders
 import SpaceTraders.Automation.Init
 import SpaceTraders.APIClient.Errors
+import SpaceTraders.APIClient.Ships
 import SpaceTraders.APIClient.Systems
 import SpaceTraders.Database.Agents
 import SpaceTraders.Database.Contracts
@@ -28,5 +29,7 @@ main = do
     Left e -> throwIO e
     Right s' -> print $ length s'
   runSpaceTradersT getContracts env >>= print
-  runSpaceTradersT getShips env >>= print
+  ss <- runSpaceTradersT getShips env
+  runSpaceTradersT (dock $ head ss) env >>= print
+  runSpaceTradersT (orbit $ head ss) env >>= print
   deinitST env
