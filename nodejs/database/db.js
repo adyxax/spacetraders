@@ -15,19 +15,36 @@ const db = new Database(
 db.pragma('foreign_keys = ON');
 db.pragma('journal_mode = WAL');
 
-db.transaction(function migrate() {
-	let version;
-	try {
-		version = db.prepare('SELECT version FROM schema_version').get().version;
-	} catch {
-		version = 0;
-	}
-	if (version === allMigrations.length) return;
-	while (version < allMigrations.length) {
-		db.exec(fs.readFileSync(allMigrations[version], 'utf8'));
-		version++;
-	}
-	db.exec(`DELETE FROM schema_version; INSERT INTO schema_version (version) VALUES (${version});`);
-})();
+function init() {
+	db.transaction(function migrate() {
+		let version;
+		try {
+			version = db.prepare('SELECT version FROM schema_version').get().version;
+		} catch {
+			version = 0;
+		}
+		if (version === allMigrations.length) return;
+		while (version < allMigrations.length) {
+			db.exec(fs.readFileSync(allMigrations[version], 'utf8'));
+			version++;
+		}
+		db.exec(`DELETE FROM schema_version; INSERT INTO schema_version (version) VALUES (${version});`);
+	})();
+}
+
+export function reset() {
+	const indices = db.prepare(`SELECT name FROM sqlite_master WHERE type = 'index';`).all();
+	const tables = db.prepare(`SELECT name FROM sqlite_master WHERE type = 'table';`).all();
+	const triggers = db.prepare(`SELECT name FROM sqlite_master WHERE type = 'trigger';`).all();
+	const views = db.prepare(`SELECT name FROM sqlite_master WHERE type = 'view';`).all();
+	indices.forEach(elt => db.exec(`DROP INDEX ${elt.name};`));
+	tables.forEach(elt => db.exec(`DROP TABLE ${elt.name};`));
+	triggers.forEach(elt => db.exec(`DROP TRIGGER ${elt.name};`));
+	views.forEach(elt => db.exec(`DROP VIEW ${elt.name};`));
+	db.exec(`VACUUM;`);
+	init();
+}
+
+init();
 
 export default db;

@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as events from 'events';
 
-import { getToken } from '../database/config.js';
+import { getToken } from '../database/tokens.js';
 import { PriorityQueue } from './priority_queue.js';
 
 // queue processor module variables
