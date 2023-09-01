@@ -48,10 +48,29 @@ queue_processor();
 // example request: {
 //    endpoint: the path part of the url to call,
 //    method: HTTP method for `fetch` call, defaults to 'GET',
+//    page: run a paginated request starting from this page until all the following pages are fetched
 //    payload: optional json object that will be send along with the request,
 //    priority: optional priority value (defaults to 10, lower than 10 means the message will be sent faster)
 // }
-export function send(request, ctx) {
+export async function send(request, ctx) {
+	if (request.page === undefined) {
+		return await send_one(request, ctx);
+	}
+	let ret = [];
+	while (true) {
+		const response = await send_one(request, ctx);
+		if (response.meta === undefined) {
+			throw {"message": "paginated request did not return a meta block", "request": request, "response": response};
+		}
+		ret = ret.concat(response.data);
+		if (response.meta.limit * response.meta.page >= response.meta.total) {
+			return ret;
+		}
+		request.page++;
+	}
+}
+
+function send_one(request, ctx) {
 	return new Promise((resolve, reject) => {
 		let data = {
 			ctx: ctx,
@@ -87,17 +106,21 @@ async function send_this(data) {
 	if (data.request.payload !== undefined) {
 		options['body'] = JSON.stringify(data.request.payload);
 	}
+	let pagination = "";
+	if (data.request.page !== undefined) {
+		pagination=`?limit=20&page=${data.request.page}`;
+	}
 	fs.writeFileSync('log', JSON.stringify({event: 'send', date: new Date(), data: data}) + '\n', {flag: 'a+'});
 	try {
-		let response = await fetch(`https://api.spacetraders.io/v2${data.request.endpoint}`, options);
+		let response = await fetch(`https://api.spacetraders.io/v2${data.request.endpoint}${pagination}`, options);
 		response = await response.json();
 		switch(response.error?.code) {
-			//case 401: // TODO 401 means a server reset happened
+		case 401: // TODO 401 means a server reset happened
+			throw response;
 			// TODO reject all promises in queue
-			// close database file
-			// rm database file
+			// reset database
 			// logrotate
-			// spawnSync
+			// spawnSync?
 			// break;
 		case 429:  // 429 means rate limited, let's hold back as instructed
 			backoffSeconds = response.error.data.retryAfter;
