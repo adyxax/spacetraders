@@ -1,3 +1,4 @@
+import * as dbContracts from '../database/contracts.js';
 import * as api from './api.js';
 import * as dbShips from '../database/ships.js';
 
@@ -6,7 +7,9 @@ export async function accept(ctx) {
 }
 
 export async function contracts() {
-	return await api.send({endpoint: '/my/contracts'});
+	const contracts = await api.send({endpoint: '/my/contracts', page: 1});
+	contracts.forEach(contract => dbContracts.setContract(contract));
+	return contracts;
 }
 
 export async function deliver(ctx) {
