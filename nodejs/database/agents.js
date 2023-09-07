@@ -12,5 +12,5 @@ export function getAgent() {
 	if (data === undefined) {
 		return null;
 	}
-	return data.data;
+	return JSON.parse(data.data);
 }

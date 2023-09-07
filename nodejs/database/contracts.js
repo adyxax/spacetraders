@@ -9,7 +9,7 @@ export function getContract(id) {
 	if (data === undefined) {
 		return null;
 	}
-	return data.data;
+	return JSON.parse(data.data);
 }
 
 export function setContract(data) {

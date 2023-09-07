@@ -10,7 +10,8 @@ export function deleteExpired() {
 
 export function get(symbol) {
 	deleteExpired();
-	return getSurveysStatement.all(symbol);
+	const data = getSurveysStatement.all(symbol);
+	return data.map(elt => JSON.parse(elt.data));
 }
 
 export function set(survey) {
