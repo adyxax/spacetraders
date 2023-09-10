@@ -1,5 +1,4 @@
 import * as api from './api.js';
-import * as dbConfig from '../database/config.js';
 import * as dbShips from '../database/ships.js';
 import * as dbSurveys from '../database/surveys.js';
 import * as systems from '../lib/systems.js';
@@ -149,6 +148,15 @@ export async function sell(ctx) {
 	}
 	dbShips.setShipCargo(ctx.symbol, response.data.cargo);
 	// TODO track credits
+	return response;
+}
+
+export async function ships() {
+	const response = await api.send({endpoint: `/my/ships`, page: 1});
+	if (response.error !== undefined) {
+		throw response;
+	}
+	response.forEach(ship => dbShips.setShip(ship));
 	return response;
 }
 
