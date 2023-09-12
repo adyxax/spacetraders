@@ -2,6 +2,7 @@ import db from './db.js';
 
 const addShipStatement = db.prepare(`INSERT INTO ships(data) VALUES (json(?));`);
 const getShipStatement = db.prepare(`SELECT data FROM ships WHERE data->>'symbol' = ?;`);
+const getShipsAtStatement = db.prepare(`SELECT data FROM ships WHERE data->>'$.nav.systemSymbol' = ?;`);
 const setShipCargoStatement = db.prepare(`UPDATE ships SET data = (SELECT json_set(data, '$.cargo', json(:cargo)) FROM ships WHERE data->>'symbol' = :symbol) WHERE data->>'symbol' = :symbol;`);
 const setShipFuelStatement = db.prepare(`UPDATE ships SET data = (SELECT json_set(data, '$.fuel', json(:fuel)) FROM ships WHERE data->>'symbol' = :symbol) WHERE data->>'symbol' = :symbol;`);
 const setShipNavStatement = db.prepare(`UPDATE ships SET data = (SELECT json_set(data, '$.nav', json(:nav)) FROM ships WHERE data->>'symbol' = :symbol) WHERE data->>'symbol' = :symbol;`);
@@ -14,6 +15,15 @@ export function getShip(symbol) {
 	}
 	return JSON.parse(data.data);
 }
+
+export function getShipsAt(symbol) {
+	const data = getShipsAtStatement.all(symbol);
+	if (data === undefined) {
+		return null;
+	}
+	return data.map(elt => JSON.parse(elt.data));
+}
+
 
 export function setShip(data) {
 	if (getShip(data.symbol) === null) {
