@@ -1,21 +1,11 @@
-import * as db from '../database/systems.js';
+import db from '../database/db.js';
+import * as dbSystems from '../database/systems.js';
 import * as api from '../lib/api.js';
 
-// Retrieves all systems information, should be called only once after registering
 export async function init() {
-	if (db.isInit()) {
-		return;
+	const response = await api.send({endpoint: `/systems`, page: Math.max(1, Math.floor(dbSystems.getSystemsCount()/20)), priority: 100});
+	if (response.error !== undefined) {
+		throw response;
 	}
-	for (let page=1; true; ++page) {
-		const response = await api.send({endpoint: `/systems?limit=20&page=${page}`, priority:100});
-		if (response.error !== undefined) {
-			throw response;
-		}
-		response.data.forEach(system => db.setSystem(system));
-		if (response.meta.total <= response.meta.limit * page) {
-			break;
-		}
-	}
-	console.log('Finished retrieving all systems information');
-	db.init();
+	db.transaction(() => response.forEach(function(system) { try { dbSystems.addSystem(system); } catch {} }))();
 }
