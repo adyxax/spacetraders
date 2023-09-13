@@ -1,9 +1,16 @@
 import * as dbContracts from '../database/contracts.js';
 import * as api from './api.js';
 import * as dbShips from '../database/ships.js';
+import * as libShips from '../lib/ships.js';
 
 export async function accept(ctx) {
-	return await api.send({endpoint: `/my/contracts/${ctx.contract}/accept`, method: 'POST'});
+	const contract = dbContracts.getContract(ctx.id);
+	if (contract.accepted) {
+		return;
+	}
+	await api.send({endpoint: `/my/contracts/${ctx.id}/accept`, method: 'POST'});
+	contract.accepted = true;
+	dbContracts.setContract(contract);
 }
 
 export async function contracts() {
