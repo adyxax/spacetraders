@@ -20,6 +20,7 @@ export async function contracts() {
 }
 
 export async function deliver(ctx) {
+	await libShips.dock(ctx);
 	const response = await api.send({ endpoint: `/my/contracts/${ctx.contract}/deliver`, method: 'POST', payload: {
 		shipSymbol: ctx.symbol,
 		tradeSymbol: ctx.good,
@@ -29,6 +30,8 @@ export async function deliver(ctx) {
 		throw response;
 	}
 	dbShips.setShipCargo(ctx.symbol, response.data.cargo);
+	// TODO update contract delivered units
+	// TODO track credits
 }
 
 export async function fulfill(ctx) {
