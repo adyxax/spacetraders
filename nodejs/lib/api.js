@@ -148,7 +148,7 @@ async function send_this(data) {
 			queue.enqueue(data, 1);
 			break;
 		default:
-			data.reject(response);
+			data.reject(err);
 		}
 	}
 }
