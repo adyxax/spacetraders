@@ -4,6 +4,7 @@ const addSystemStatement = db.prepare(`INSERT INTO systems(data) VALUES (json(?)
 const getSystemStatement = db.prepare(`SELECT data FROM systems WHERE data->>'symbol' = ?;`);
 const getSystemUpdatedStatement = db.prepare(`SELECT updated FROM systems WHERE data->>'symbol' = ?;`);
 const getSystemsCountStatement = db.prepare(`SELECT COUNT(data) as data FROM systems;`);
+const setSystemStatement = db.prepare(`UPDATE systems SET data = json(:data), updated = :date WHERE data->>'symbol' = :symbol;`);
 const setSystemWaypointsStatement = db.prepare(`UPDATE systems SET data = (SELECT json_set(data, '$.waypoints', json(:waypoints)) FROM systems WHERE data->>'symbol' = :symbol), updated = :date WHERE data->>'symbol' = :symbol;`);
 
 export function addSystem(data) {
@@ -32,6 +33,18 @@ export function getSystemUpdated(symbol) {
 		return null;
 	}
 	return updated.updated;
+}
+
+export function setSystem(data) {
+	if (getSystem(data.symbol) === null) {
+		addSystem(data);
+	} else {
+		return setSystemStatement.run({
+			data: JSON.stringify(data),
+			date: new Date().toISOString(),
+			symbol: data.symbol,
+		}).changes;
+	}
 }
 
 export function setSystemWaypoints(symbol, waypoints) {
