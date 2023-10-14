@@ -29,7 +29,7 @@ dock ship = do
     Left e -> return $ Left e
     Right (NavMessage n) -> do
       let s = ship{SpaceTraders.Model.Ship.nav=n}
-      updateShip s Nothing
+      updateShip s
       return $ Right s
 
 myShips :: SpaceTradersT (APIResponse [Ship])
@@ -55,5 +55,5 @@ orbit ship = do
     Left e -> return $ Left e
     Right (NavMessage n) -> do
       let s = ship{SpaceTraders.Model.Ship.nav=n}
-      updateShip s Nothing
+      updateShip s
       return $ Right s
