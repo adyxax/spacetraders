@@ -15,6 +15,7 @@ import SpaceTraders.Model.Fuel
 import SpaceTraders.Model.Nav
 
 data Ship = Ship { cargo :: Cargo
+                 , cooldown :: Cooldown
                  --, crew :: Crew
                  --, engine :: Engine
                  --, frame :: Frame
@@ -26,3 +27,8 @@ data Ship = Ship { cargo :: Cargo
                  --, registration :: Registration
                  , symbol :: T.Text
                  } deriving (FromJSON, Generic, Show, ToJSON)
+
+data Cooldown = Cooldown { shipSymbol :: T.Text
+                         , totalSeconds :: Int
+                         , remainingSeconds :: Int
+                         } deriving (FromJSON, Generic, Show, ToJSON)

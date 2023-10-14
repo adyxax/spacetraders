@@ -13,9 +13,9 @@ import GHC.Generics
 import qualified Data.Text as T
 
 data Route = Route { arrival :: UTCTime
-                   , departure :: RouteEndpoint
                    , departureTime :: UTCTime
                    , destination :: RouteEndpoint
+                   , origin :: RouteEndpoint
                    } deriving (FromJSON, Generic, Show, ToJSON)
 
 data RouteEndpoint = RouteEndpoint { routeEndpointType :: T.Text
