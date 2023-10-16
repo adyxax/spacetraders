@@ -20,6 +20,9 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
 import Network.HTTP.Simple
 import Network.HTTP.Types.Status
+import System.Directory
+import System.Environment
+import System.Posix.Process
 
 import SpaceTraders
 import SpaceTraders.APIClient.Errors
@@ -86,4 +89,10 @@ sendPaginated pagination requestBuilder = do
           Right (APIRateLimit r) -> do
             liftIO $ delay (1_000_000 * (round $ retryAfter r))
             sendPaginated' request
+          Right (APIResetHappened _) -> liftIO $ do
+            removeFile "spacetraders.db"
+            p <- getExecutablePath
+            a <- getArgs
+            e <- getEnvironment
+            executeFile p False a (Just e) -- we exec on ourselves
           Right e -> return $ Left e

@@ -55,7 +55,6 @@ registerST = do
       addAgent $ agent r'
       addContract $ contract r'
       addShip $ ship r'
-      _ <- myShips -- in order to fetch the starting probe that is not advertised in the register message
       let t = token r'
       addToken t
       return t
