@@ -19,21 +19,48 @@ export async function contracts() {
 	return contracts;
 }
 
+// returns true if the contract has been fulfilled
 export async function deliver(ctx) {
+	const contract = dbContracts.getContract(ctx.id);
+	if (contract.terms.deliver[0].unitsRequired === contract.terms.deliver[0].unitsFulfilled) {
+		await fulfill(ctx);
+		return true;
+	}
 	await libShips.dock(ctx);
-	const response = await api.send({ endpoint: `/my/contracts/${ctx.contract}/deliver`, method: 'POST', payload: {
+	const response = await api.send({ endpoint: `/my/contracts/${ctx.id}/deliver`, method: 'POST', payload: {
 		shipSymbol: ctx.symbol,
 		tradeSymbol: ctx.good,
 		units: ctx.units,
 	}});
 	if (response.error !== undefined) {
-		throw response;
+		switch(response.error.code) {
+		case 4509: // contract delivery terms have been met
+			await fulfill(ctx);
+			return true;
+		default: // yet unhandled error
+			api.debugLog(response);
+			throw response;
+		}
 	}
+	dbContracts.setContract(response.data.contract);
 	dbShips.setShipCargo(ctx.symbol, response.data.cargo);
-	// TODO update contract delivered units
 	// TODO track credits
+	if(response.data.contract.terms.deliver[0].unitsRequired === response.data.contract.terms.deliver[0].unitsFulfilled) {
+		await fulfill(ctx);
+		return true;
+	}
+	return false;
 }
 
 export async function fulfill(ctx) {
-	return await api.send({ endpoint: `/my/contracts/${ctx.contract}/fulfill`, method: 'POST'});
+	const contract = dbContracts.getContract(ctx.id);
+	if (contract.fulfilled) {
+		return;
+	}
+	const response = await api.send({ endpoint: `/my/contracts/${ctx.id}/fulfill`, method: 'POST'});
+	if (response.error !== undefined) {
+		api.debugLog(response);
+		throw response;
+	}
+	dbContracts.setContract(response.data.contract);
 }

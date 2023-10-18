@@ -34,7 +34,7 @@ async function runProcurement(contract, ships) {
 	const asteroidFields = await systems.type({symbol: ships[0].nav.systemSymbol, type: 'ASTEROID_FIELD'});
 	const asteroidField = asteroidFields[0].symbol;
 	ships.forEach(async function(ship) {
-		while (!contract.fulfilled) {
+		while (!dbContracts.getContract(contract.id).fulfilled) {
 			ship = dbShips.getShip(ship.symbol);
 			let goodCargo = ship.cargo.inventory.filter(i => i.symbol === wantedCargo)[0];
 			// If we are in transit, we wait until we arrive
@@ -49,8 +49,9 @@ async function runProcurement(contract, ships) {
 			case deliveryPoint:
 				if (goodCargo !== undefined) { // we could be here if a client restart happens right after selling before we navigate away
 					console.log(`delivering ${goodCargo.units} of ${wantedCargo}`);
-					await contracts.deliver({contract: contract.id, symbol: ship.symbol, good: wantedCargo, units: goodCargo.units });
-					// TODO check if contract is fulfilled!
+					if (await contracts.deliver({id: contract.id, symbol: ship.symbol, good: wantedCargo, units: goodCargo.units })) {
+						break;
+					}
 				}
 				await libShips.navigate({symbol: ship.symbol, waypoint: asteroidField});
 				break;
@@ -58,5 +59,6 @@ async function runProcurement(contract, ships) {
 				await libShips.navigate({symbol: ship.symbol, waypoint: asteroidField});
 			}
 		}
+		// TODO repurpose the ship
 	});
 }
