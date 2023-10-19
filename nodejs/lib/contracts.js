@@ -1,3 +1,4 @@
+import * as dbAgents from '../database/agents.js';
 import * as dbContracts from '../database/contracts.js';
 import * as api from './api.js';
 import * as dbShips from '../database/ships.js';
@@ -62,5 +63,6 @@ export async function fulfill(ctx) {
 		api.debugLog(response);
 		throw response;
 	}
+	dbAgents.setAgent(response.data.agent);
 	dbContracts.setContract(response.data.contract);
 }
