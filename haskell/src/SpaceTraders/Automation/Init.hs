@@ -49,7 +49,7 @@ initST = do
 
 registerST :: SpaceTradersT (T.Text)
 registerST = do
-  r <- register "ADYXAX" "COSMIC"
+  r <- register "ADYXAX-HS" "COSMIC"
   case r of
     Right r' -> do
       addAgent $ agent r'

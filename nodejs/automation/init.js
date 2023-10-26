@@ -14,7 +14,7 @@ export async function init() {
 			'Content-Type': 'application/json',
 		},
 		body: JSON.stringify({
-			symbol: "ADYXAX",
+			symbol: "ADYXAX-JS",
 			faction: "COSMIC",
 		}),
 	});
