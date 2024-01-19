@@ -4,6 +4,6 @@
 		"node": ">=18.10.0"
 	},
 	"dependencies": {
-		"better-sqlite3": "^9.2.2"
+		"better-sqlite3": "^9.3.0"
 	}
 }
