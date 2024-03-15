@@ -10,7 +10,7 @@ let busy = false; // true if we are already sending api requests.
 let backoffSeconds = 0;
 let running = false;
 // other module variables
-let headers = undefined; // a file scope variable so that we only evaluate these once.
+let headers = undefined; // a file scoped variable so that we only evaluate these once.
 let queue = new PriorityQueue(); // a priority queue to hold api calls we want to send, allows for throttling.
 
 // a single queue processor should be running at any time, otherwise there will be trouble!

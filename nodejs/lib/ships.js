@@ -5,7 +5,7 @@ import * as systems from '../lib/systems.js';
 
 export async function extract(ctx) {
 	const ship = dbShips.getShip(ctx.symbol);
-	const asteroidFields = await systems.type({symbol: ship.nav.systemSymbol, type: 'ASTEROID_FIELD'});
+	const asteroidFields = await systems.type({symbol: ship.nav.systemSymbol, type: 'ENGINEERED_ASTEROID'});
 	// TODO if there are multiple fields, find the closest one?
 	await navigate({symbol: ctx.symbol, waypoint: asteroidFields[0].symbol});
 	await orbit(ctx);

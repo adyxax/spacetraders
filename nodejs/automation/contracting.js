@@ -31,8 +31,8 @@ async function runProcurement(contract, ships) {
 	// TODO check if contract is fulfilled!
 	const wantedCargo = contract.terms.deliver[0].tradeSymbol;
 	const deliveryPoint = contract.terms.deliver[0].destinationSymbol;
-	const asteroidFields = await systems.type({symbol: ships[0].nav.systemSymbol, type: 'ASTEROID_FIELD'});
-	const asteroidField = asteroidFields[0].symbol;
+	const asteroids = await systems.type({symbol: ships[0].nav.systemSymbol, type: 'ENGINEERED_ASTEROID'});
+	const asteroidSymbol = asteroids[0].symbol;
 	ships.forEach(async function(ship) {
 		while (!dbContracts.getContract(contract.id).fulfilled) {
 			ship = dbShips.getShip(ship.symbol);
@@ -42,8 +42,11 @@ async function runProcurement(contract, ships) {
 			if (delay > 0) await api.sleep(delay);
 			// Then it depends on where we are
 			switch (ship.nav.waypointSymbol) {
-			case asteroidField:
-				let response = await mining.mineUntilFullOf({good: wantedCargo, symbol: ship.symbol});
+			case asteroidSymbol:
+				let response = await mining.mineUntilFullOf({
+					good: wantedCargo,
+					symbol: ship.symbol
+				});
 				await libShips.navigate({symbol: ship.symbol, waypoint: deliveryPoint});
 				break;
 			case deliveryPoint:
@@ -53,10 +56,10 @@ async function runProcurement(contract, ships) {
 						break;
 					}
 				}
-				await libShips.navigate({symbol: ship.symbol, waypoint: asteroidField});
+				await libShips.navigate({symbol: ship.symbol, waypoint: asteroidSymbol});
 				break;
 			default:
-				await libShips.navigate({symbol: ship.symbol, waypoint: asteroidField});
+				await libShips.navigate({symbol: ship.symbol, waypoint: asteroidSymbol});
 			}
 		}
 		// TODO repurpose the ship
