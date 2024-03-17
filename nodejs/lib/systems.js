@@ -1,9 +1,11 @@
 import * as api from './api.js';
 import * as db from '../database/systems.js';
+import * as utils from './utils.js';
+
 
 // Retrieves a shipyard's information for ctx.symbol
 export async function shipyard(ctx) {
-	const systemSymbol = ctx.symbol.match(/([^-]+-[^-]+)/)[1]; // TODO generalise this extraction
+	const systemSymbol = utils.systemFromWaypoint(ctx.symbol);
 	console.log(systemSymbol);
 	return await api.send({endpoint: `/systems/${systemSymbol}/waypoints/${ctx.symbol}/shipyard`});
 }

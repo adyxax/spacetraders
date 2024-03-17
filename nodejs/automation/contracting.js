@@ -5,7 +5,7 @@ import * as api from '../lib/api.js';
 import * as contracts from '../lib/contracts.js';
 import * as libShips from '../lib/ships.js';
 import * as systems from '../lib/systems.js';
-import * as utils from './utils.js';
+import * as utils from '../lib/utils.js';
 
 export async function init() {
 	const cs = dbContracts.getContracts();
@@ -14,7 +14,7 @@ export async function init() {
 
 async function run(contract) {
 	await contracts.accept({id: contract.id});
-	const contractSystem = utils.waypointToSystem(contract.terms.deliver[0].destinationSymbol);
+	const contractSystem = utils.systemFromWaypoint(contract.terms.deliver[0].destinationSymbol);
 	let ships = dbShips.getShipsAt(contractSystem);
 	ships = ships.filter(ship => ship.registration.role !== 'SATELLITE'); // filter out probes
 
