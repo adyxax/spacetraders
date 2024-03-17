@@ -1,18 +1,34 @@
 import * as api from './api.js';
-import * as db from '../database/systems.js';
+import * as dbMarkets from '../database/markets.js';
+import * as dbShips from '../database/ships.js';
+import * as dbSystems from '../database/systems.js';
 import * as utils from './utils.js';
 
+// Retrieves a marketplace's market data for waypointSymbol
+export async function market(waypointSymbol) {
+    const data = dbMarkets.getMarketAtWaypoint(waypointSymbol);
+    if (data === null) {
+	if (dbShips.getShipsAt(waypointSymbol) === null) {
+	    return null;
+	}
+	const systemSymbol = utils.systemFromWaypoint(waypointSymbol);
+	let d = await api.send({endpoint: `/systems/${systemSymbol}/waypoints/${waypointSymbol}/market`});
+	delete d.data.transactions;
+	dbMarkets.setMarket(d.data);
+	return d;
+    }
+    return data;
+}
 
 // Retrieves a shipyard's information for ctx.symbol
 export async function shipyard(ctx) {
 	const systemSymbol = utils.systemFromWaypoint(ctx.symbol);
-	console.log(systemSymbol);
 	return await api.send({endpoint: `/systems/${systemSymbol}/waypoints/${ctx.symbol}/shipyard`});
 }
 
 // Retrieves the system's information for ctx.symbol and caches it in the database
 export async function system(ctx) {
-	let s = db.getSystem(ctx.symbol);
+	let s = dbSystems.getSystem(ctx.symbol);
 	if (s === null) {
 		const response = await api.send({endpoint: `/systems/${ctx.symbol}`});
 		if (response.error !== undefined) {
@@ -24,7 +40,7 @@ export async function system(ctx) {
 			}
 		}
 		s = response.data;
-		db.setSystem(s);
+		dbSystems.setSystem(s);
 	}
 	return s;
 }
@@ -44,7 +60,7 @@ export async function type(ctx, response) {
 // Retrieves the system's information for ctx.symbol and caches it in the database
 export async function waypoints(ctx) {
 	await system(ctx);
-	let updated = db.getSystemUpdated(ctx.symbol);
+	let updated = dbSystems.getSystemUpdated(ctx.symbol);
 	// TODO handle uncharted systems
 	if (updated === null) {
 		let waypoints = [];
@@ -63,8 +79,8 @@ export async function waypoints(ctx) {
 				break;
 			}
 		}
-		db.setSystemWaypoints(ctx.symbol, waypoints);
+		dbSystems.setSystemWaypoints(ctx.symbol, waypoints);
 		return waypoints;
 	}
-	return db.getSystem(ctx.symbol).waypoints;
+	return dbSystems.getSystem(ctx.symbol).waypoints;
 }
