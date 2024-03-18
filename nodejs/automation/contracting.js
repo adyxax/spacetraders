@@ -1,4 +1,5 @@
 import * as mining from './mining.js';
+import * as selling from './selling.js';
 import * as dbContracts from '../database/contracts.js';
 import * as dbShips from '../database/ships.js';
 import * as api from '../lib/api.js';
@@ -43,7 +44,8 @@ async function runProcurement(contract, ships) {
 			// Then it depends on where we are
 			switch (ship.nav.waypointSymbol) {
 			case asteroidSymbol:
-				let response = await mining.mineUntilFullOf({
+				await mining.mineUntilFullOf({
+					asteroidSymbol: asteroidSymbol,
 					good: wantedCargo,
 					symbol: ship.symbol
 				});
@@ -59,6 +61,8 @@ async function runProcurement(contract, ships) {
 				await libShips.navigate({symbol: ship.symbol, waypoint: asteroidSymbol});
 				break;
 			default:
+				// we were either selling or started contracting
+				await selling.sell(ship, wantedCargo);
 				await libShips.navigate({symbol: ship.symbol, waypoint: asteroidSymbol});
 			}
 		}

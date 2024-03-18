@@ -139,7 +139,7 @@ export async function refuel(ctx) {
 }
 
 export async function sell(ctx) {
-	// TODO check if our current waypoint has a marketplace (and sells fuel)?
+	// TODO check if our current waypoint has a marketplace?
 	await dock(ctx);
 	const ship = dbShips.getShip(ctx.symbol);
 	const response = await api.send({endpoint: `/my/ships/${ctx.symbol}/sell`, method: 'POST', payload: { symbol: ctx.good, units: ctx.units }});
