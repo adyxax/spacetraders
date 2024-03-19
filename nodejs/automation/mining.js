@@ -12,7 +12,7 @@ export async function mineUntilFullOf(ctx) {
 		const cargo = utils.categorizeCargo(await mineUntilFull({symbol: ctx.symbol}), ctx.good);
 		const wantedUnits = Object.values(cargo.wanted).reduce((acc, e) => acc += e, 0);
 		// > 90% full of the valuable goods ?
-		if (wantedUnits >= cargo.capacity * 0.9) return;
+		if (wantedUnits >= ship.cargo.capacity * 0.9) return;
 		// we are full but need to sell junk
 		await selling.sell(ship, ctx.good);
 		await libShips.navigate({symbol: ship.symbol, waypoint: ctx.asteroidSymbol});
@@ -26,7 +26,7 @@ async function mineUntilFull(ctx) {
 		const ship = dbShips.getShip(ctx.symbol);
 		if (ship.cargo.units >= ship.cargo.capacity * 0.9) return ship.cargo;
 		if (await libShips.extract({symbol: ctx.symbol}) === null)
-			ship = await ship(ctx); // refresh the ships status from the server just in case
+			await ship(ctx); // refresh the ships status from the server just in case
 	}
 }
 

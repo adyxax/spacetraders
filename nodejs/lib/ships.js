@@ -62,7 +62,7 @@ export async function jump(ctx) {
 export async function navigate(ctx) {
 	const ship = dbShips.getShip(ctx.symbol);
 	if (ship.nav.waypointSymbol === ctx.waypoint) {
-		return await orbit(ctx);
+		return;
 	}
 	await orbit(ctx);
 	// TODO if we do not have enough fuel, make a stop to refuel along the way or drift to the destination
