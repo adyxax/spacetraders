@@ -52,11 +52,11 @@ registerST = do
   r <- register "ADYXAX-HS" "COSMIC"
   case r of
     Right r' -> do
+      let t = token r'
+      addToken t
       addAgent $ agent r'
       addContract $ contract r'
       addShip $ ship r'
-      let t = token r'
-      addToken t
       return t
     Left e' -> throw e'
 

@@ -5,17 +5,17 @@ import * as dbSystems from '../database/systems.js';
 import * as utils from './utils.js';
 
 // Retrieves a marketplace's market data for waypointSymbol
-export async function market(waypointSymbol) {
+export async function market(waypointSymbol: string) {
     const data = dbMarkets.getMarketAtWaypoint(waypointSymbol);
     if (data === null) {
-	if (dbShips.getShipsAt(waypointSymbol) === null) {
-	    return null;
-	}
-	const systemSymbol = utils.systemFromWaypoint(waypointSymbol);
-	let d = await api.send({endpoint: `/systems/${systemSymbol}/waypoints/${waypointSymbol}/market`});
-	delete d.data.transactions;
-	dbMarkets.setMarket(d.data);
-	return d;
+		if (dbShips.getShipsAt(waypointSymbol) === null) {
+			return null;
+		}
+		const systemSymbol = utils.systemFromWaypoint(waypointSymbol);
+		let d = await api.send({endpoint: `/systems/${systemSymbol}/waypoints/${waypointSymbol}/market`});
+		delete d.data.transactions;
+		dbMarkets.setMarket(d.data);
+		return d;
     }
     return data;
 }
@@ -33,10 +33,10 @@ export async function system(ctx) {
 		const response = await api.send({endpoint: `/systems/${ctx.symbol}`});
 		if (response.error !== undefined) {
 			switch(response.error.code) {
-			case 404:
-				throw `Error retrieving info for system ${ctx.symbol}: ${response.error.message}`;
-			default: // yet unhandled error
-				throw response;
+				case 404:
+					throw `Error retrieving info for system ${ctx.symbol}: ${response.error.message}`;
+				default: // yet unhandled error
+					throw response;
 			}
 		}
 		s = response.data;
@@ -68,10 +68,10 @@ export async function waypoints(ctx) {
 			const response = await api.send({endpoint: `/systems/${ctx.symbol}/waypoints?limit=20&page=${page}`, priority: 98});
 			if (response.error !== undefined) {
 				switch(response.error.code) {
-				case 404:
-					throw `Error retrieving waypoints for system ${ctx.symbol}: ${response.error.message}`;
-				default: // yet unhandled error
-					throw response;
+					case 404:
+						throw `Error retrieving waypoints for system ${ctx.symbol}: ${response.error.message}`;
+					default: // yet unhandled error
+						throw response;
 				}
 			}
 			waypoints = waypoints.concat(response.data);

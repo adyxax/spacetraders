@@ -6,6 +6,8 @@ import * as dbTokens from '../database/tokens.js';
 import * as api from '../lib/api.js';
 import * as ships from '../lib/ships.js';
 
+const symbol = process.env.NODE_ENV === 'test' ? 'ADYXAX-0' : 'ADYXAX-TS';
+
 // This function registers then inits the database
 export async function init() {
 	const response = await fetch('https://api.spacetraders.io/v2/register', {
@@ -14,7 +16,7 @@ export async function init() {
 			'Content-Type': 'application/json',
 		},
 		body: JSON.stringify({
-			symbol: "ADYXAX-JS",
+			symbol: symbol,
 			faction: "COSMIC",
 		}),
 	});

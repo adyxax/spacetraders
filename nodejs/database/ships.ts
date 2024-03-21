@@ -1,4 +1,6 @@
-import db from './db.js';
+import db from './db.ts';
+import { Cargo } from '../model/cargo.ts';
+import { Fuel, Nav, Ship } from '../model/ship.ts';
 
 const addShipStatement = db.prepare(`INSERT INTO ships(data) VALUES (json(?));`);
 const getShipStatement = db.prepare(`SELECT data FROM ships WHERE data->>'symbol' = ?;`);
@@ -8,51 +10,46 @@ const setShipFuelStatement = db.prepare(`UPDATE ships SET data = (SELECT json_se
 const setShipNavStatement = db.prepare(`UPDATE ships SET data = (SELECT json_set(data, '$.nav', json(:nav)) FROM ships WHERE data->>'symbol' = :symbol) WHERE data->>'symbol' = :symbol;`);
 const updateShipStatement = db.prepare(`UPDATE ships SET data = json(:data) WHERE data->>'symbol' = :symbol;`);
 
-export function getShip(symbol) {
-	const data = getShipStatement.get(symbol);
-	if (data === undefined) {
-		return null;
-	}
+export function getShip(symbol: string): Ship|null {
+	const data = getShipStatement.get(symbol) as {data: string}|undefined;
+	if (!data) return null;
 	return JSON.parse(data.data);
 }
 
-export function getShipsAt(symbol) {
-	const data = getShipsAtStatement.all(symbol);
-	if (data === undefined) {
-		return null;
-	}
+export function getShipsAt(symbol: string) {
+	const data = getShipsAtStatement.all(symbol) as Array<{data: string}>;
 	return data.map(elt => JSON.parse(elt.data));
 }
 
 
-export function setShip(data) {
+export function setShip(data: Ship) {
 	if (getShip(data.symbol) === null) {
-		return addShipStatement.run(JSON.stringify(data)).lastInsertRowid;
+		addShipStatement.run(JSON.stringify(data));
 	} else {
-		return updateShipStatement.run({
+		updateShipStatement.run({
 			data: JSON.stringify(data),
 			symbol: data.symbol,
-		}).changes;
+		});
 	}
 }
 
-export function setShipCargo(symbol, cargo) {
-	return setShipCargoStatement.run({
+export function setShipCargo(symbol: string, cargo: Cargo) {
+	setShipCargoStatement.run({
 		cargo: JSON.stringify(cargo),
 		symbol: symbol,
-	}).changes;
+	});
 }
 
-export function setShipFuel(symbol, fuel) {
-	return setShipFuelStatement.run({
+export function setShipFuel(symbol: string, fuel: Fuel) {
+	setShipFuelStatement.run({
 		fuel: JSON.stringify(fuel),
 		symbol: symbol,
-	}).changes;
+	});
 }
 
-export function setShipNav(symbol, nav) {
-	return setShipNavStatement.run({
+export function setShipNav(symbol: string, nav: Nav) {
+	setShipNavStatement.run({
 		nav: JSON.stringify(nav),
 		symbol: symbol,
-	}).changes;
+	});
 }

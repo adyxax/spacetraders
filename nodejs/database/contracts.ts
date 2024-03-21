@@ -1,30 +1,29 @@
-import db from './db.js';
+import { Contract } from '../model/contract.ts';
+import db from './db.ts';
 
 const addContractStatement = db.prepare(`INSERT INTO contracts(data) VALUES (json(?));`);
 const getContractStatement = db.prepare(`SELECT data FROM contracts WHERE data->>'id' = ?;`);
 const getContractsStatement = db.prepare(`SELECT data FROM contracts WHERE data->>'fulfilled' = false;`);
 const updateContractStatement = db.prepare(`UPDATE contracts SET data = json(:data) WHERE data->>'id' = :id;`);
 
-export function getContract(id) {
-	const data = getContractStatement.get(id);
-	if (data === undefined) {
-		return null;
-	}
+export function getContract(id: string): Contract|null {
+	const data = getContractStatement.get(id) as {data: string}|undefined;
+	if (!data) return null;
 	return JSON.parse(data.data);
 }
 
-export function getContracts() {
-	const data = getContractsStatement.all();
+export function getContracts(): Array<Contract> {
+	const data = getContractsStatement.all() as Array<{data: string}>;
 	return data.map(contractData => JSON.parse(contractData.data));
 }
 
-export function setContract(data) {
+export function setContract(data: Contract) {
 	if (getContract(data.id) === null) {
-		return addContractStatement.run(JSON.stringify(data)).lastInsertRowid;
+		addContractStatement.run(JSON.stringify(data));
 	} else {
-		return updateContractStatement.run({
+		updateContractStatement.run({
 			data: JSON.stringify(data),
 			id: data.id,
-		}).changes;
+		});
 	}
 }
