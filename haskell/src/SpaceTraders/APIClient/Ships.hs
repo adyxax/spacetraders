@@ -23,15 +23,17 @@ import           SpaceTraders.Model.Ship
 newtype NavMessage = NavMessage { nav :: Nav } deriving (FromJSON, Generic, Show)
 
 dock :: Ship -> SpaceTradersT (APIResponse Ship)
-dock ship = do
-  resp <- send $ setRequestPath (T.encodeUtf8 $ mconcat ["/v2/my/ships/", symbol ship, "/dock"])
-               . setRequestMethod "POST" :: SpaceTradersT (APIResponse NavMessage)
-  case resp of
-    Left e -> return $ Left e
-    Right (NavMessage n) -> do
-      let s = ship{SpaceTraders.Model.Ship.nav=n}
-      setShip s
-      return $ Right s
+dock ship = if isDocked ship then pure (Right ship) else dock'
+  where
+    dock' = do
+      resp <- send $ setRequestPath (T.encodeUtf8 $ mconcat ["/v2/my/ships/", symbol ship, "/dock"])
+                   . setRequestMethod "POST" :: SpaceTradersT (APIResponse NavMessage)
+      case resp of
+        Left e -> return $ Left e
+        Right (NavMessage n) -> do
+          let s = ship{SpaceTraders.Model.Ship.nav=n}
+          setShip s
+          return $ Right s
 
 myShips :: SpaceTradersT (APIResponse [Ship])
 myShips = do
@@ -49,12 +51,14 @@ myShips = do
         _ -> undefined
 
 orbit :: Ship -> SpaceTradersT (APIResponse Ship)
-orbit ship = do
-  resp <- send $ setRequestPath (T.encodeUtf8 $ mconcat ["/v2/my/ships/", symbol ship, "/orbit"])
-               . setRequestMethod "POST" :: SpaceTradersT (APIResponse NavMessage)
-  case resp of
-    Left e -> return $ Left e
-    Right (NavMessage n) -> do
-      let s = ship{SpaceTraders.Model.Ship.nav=n}
-      setShip s
-      return $ Right s
+orbit ship = if isInOrbit ship then pure (Right ship) else orbit'
+  where
+    orbit' = do
+      resp <- send $ setRequestPath (T.encodeUtf8 $ mconcat ["/v2/my/ships/", symbol ship, "/orbit"])
+                   . setRequestMethod "POST" :: SpaceTradersT (APIResponse NavMessage)
+      case resp of
+        Left e -> return $ Left e
+        Right (NavMessage n) -> do
+          let s = ship{SpaceTraders.Model.Ship.nav=n}
+          setShip s
+          return $ Right s
