@@ -5,13 +5,13 @@ module SpaceTraders.Database.Systems
   , getSystems
   ) where
 
-import Control.Monad.Reader
-import Data.Aeson
-import qualified Database.SQLite.Simple as S
+import           Control.Monad.Reader
+import           Data.Aeson
+import qualified Database.SQLite.Simple    as S
 
-import SpaceTraders
-import SpaceTraders.Model.System
-import SpaceTraders.Utils
+import           SpaceTraders
+import           SpaceTraders.Model.System
+import           SpaceTraders.Utils
 
 addSystems :: (HasDatabaseConn env, MonadIO m, MonadReader env m) => [System] -> m ()
 addSystems systems = do

@@ -1,24 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module SpaceTraders.Database.Agents
-  ( addAgent
-  , getAgent
+  ( getAgent
   , setAgent
   ) where
 
-import Control.Monad.Reader
-import Data.Aeson
-import qualified Database.SQLite.Simple as S
+import           Control.Monad.Error.Class
+import           Control.Monad.Reader
+import           Data.Aeson
+import qualified Database.SQLite.Simple    as S
 
-import SpaceTraders
-import SpaceTraders.Model.Agent
-import SpaceTraders.Utils
-
-addAgent :: (HasDatabaseConn env, MonadIO m, MonadReader env m) => Agent -> m ()
-addAgent agent = execute "INSERT INTO agents(data) VALUES (json(?));" (S.Only (encode agent))
+import           SpaceTraders
+import           SpaceTraders.Model.Agent
+import           SpaceTraders.Utils
 
 getAgent :: (HasDatabaseConn env, MonadIO m, MonadReader env m) => m Agent
-getAgent = one_ "SELECT data FROM agents";
+getAgent = one_ "SELECT data FROM agents"; -- we only support one agent at a time
 
-setAgent :: (HasDatabaseConn env, MonadIO m, MonadReader env m) => Agent -> m ()
-setAgent agent = execute "UPDATE agents SET data = json(?);" (S.Only (encode agent))
+setAgent :: (HasDatabaseConn env, MonadError e m, MonadIO m, MonadReader env m) => Agent -> m ()
+setAgent agent = updateAgent `catchError` addAgent
+  where
+    addAgent _ = execute "INSERT INTO agents(data) VALUES (json(?));" (S.Only $ encode agent)
+    updateAgent = execute "UPDATE agents SET data = json(?);" (S.Only (encode agent))

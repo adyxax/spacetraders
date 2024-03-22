@@ -1,17 +1,16 @@
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric  #-}
 
 module SpaceTraders.APIClient.Pagination
   ( Pagination(..)
   , nextPage
   ) where
 
-import Data.Aeson
-import GHC.Generics
+import           Data.Aeson
+import           GHC.Generics
 
 data Pagination = Pagination { limit :: Int
-                             , page :: Int
+                             , page  :: Int
                              , total :: Int
                              } deriving (FromJSON, Generic, Show)
 

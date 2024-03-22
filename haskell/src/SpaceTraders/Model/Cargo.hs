@@ -1,17 +1,16 @@
 {-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric  #-}
 
 module SpaceTraders.Model.Cargo
   ( Cargo(..)
   ) where
 
-import Data.Aeson
-import GHC.Generics
+import           Data.Aeson
+import           GHC.Generics
 
-import SpaceTraders.Model.Inventory(Inventory)
+import           SpaceTraders.Model.Inventory (Inventory)
 
-data Cargo = Cargo { capacity :: Int
+data Cargo = Cargo { capacity  :: Int
                    , inventory :: [Inventory]
-                   , units :: Int
+                   , units     :: Int
                    } deriving (FromJSON, Generic, Show, ToJSON)

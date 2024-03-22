@@ -1,5 +1,5 @@
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module SpaceTraders.APIClient.Errors
@@ -8,11 +8,11 @@ module SpaceTraders.APIClient.Errors
   , ResetHappened(..)
   ) where
 
-import Control.Exception
-import Data.Aeson
-import Data.Time
-import qualified Data.Text as T
-import GHC.Generics
+import           Control.Exception
+import           Data.Aeson
+import qualified Data.Text         as T
+import           Data.Time
+import           GHC.Generics
 
 data APIError = APIError Int T.Text Value
               | APIRateLimit RateLimit
@@ -27,16 +27,15 @@ instance FromJSON APIError where
     case code of
       401 -> APIResetHappened <$> parseJSON d
       429 -> APIRateLimit <$> parseJSON d
-      _ -> APIError <$> pure code
-                    <*> e .: "message"
-                    <*> pure d
+      _ -> APIError code <$> e .: "message"
+                         <*> pure d
 
-data RateLimit = RateLimit { limitBurst :: Int
+data RateLimit = RateLimit { limitBurst     :: Int
                            , limitPerSecond :: Int
-                           , rateLimitType :: T.Text
-                           , remaining :: Int
-                           , reset :: UTCTime
-                           , retryAfter :: Double
+                           , rateLimitType  :: T.Text
+                           , remaining      :: Int
+                           , reset          :: UTCTime
+                           , retryAfter     :: Double
                            } deriving Show
 instance FromJSON RateLimit where
   parseJSON = withObject "RateLimit" $ \o ->
@@ -47,6 +46,6 @@ instance FromJSON RateLimit where
               <*> o .: "reset"
               <*> o .: "retryAfter"
 
-data ResetHappened = ResetHappened { actual :: T.Text
+data ResetHappened = ResetHappened { actual   :: T.Text
                                    , expected :: T.Text
                                    } deriving (FromJSON, Generic, Show, ToJSON)

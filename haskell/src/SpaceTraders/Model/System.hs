@@ -1,23 +1,22 @@
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module SpaceTraders.Model.System
   ( System(..)
   ) where
 
-import Data.Aeson
-import qualified Data.Text as T
-import GHC.Generics
+import           Data.Aeson
+import qualified Data.Text                   as T
+import           GHC.Generics
 
-import SpaceTraders.Model.Waypoint(Waypoint)
+import           SpaceTraders.Model.Waypoint (Waypoint)
 
 data System = System { sectorSymbol :: T.Text
-                     , symbol :: T.Text
-                     , systemType :: T.Text
-                     , x :: Int
-                     , y :: Int
-                     , waypoints :: [Waypoint]
+                     , symbol       :: T.Text
+                     , systemType   :: T.Text
+                     , x            :: Int
+                     , y            :: Int
+                     , waypoints    :: [Waypoint]
                      --, factions :: [Faction]
                      } deriving (Generic, Show)
 instance FromJSON System where

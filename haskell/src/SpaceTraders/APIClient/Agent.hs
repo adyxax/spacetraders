@@ -1,5 +1,5 @@
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module SpaceTraders.APIClient.Agent
@@ -8,28 +8,33 @@ module SpaceTraders.APIClient.Agent
   , register
   ) where
 
-import Control.Monad.Reader
-import Data.Aeson
-import GHC.Generics
-import qualified Data.Text as T
-import Network.HTTP.Simple
+import           Control.Monad.Reader
+import           Data.Aeson
+import qualified Data.Text                     as T
+import           GHC.Generics
+import           Network.HTTP.Simple
 
-import SpaceTraders
-import SpaceTraders.APIClient.Client
-import SpaceTraders.Model.Agent(Agent)
-import SpaceTraders.Model.Ship(Ship)
-import SpaceTraders.Model.Contract
+import           SpaceTraders
+import           SpaceTraders.APIClient.Client
+import           SpaceTraders.Database.Agents
+import           SpaceTraders.Model.Agent      (Agent)
+import           SpaceTraders.Model.Contract
+import           SpaceTraders.Model.Ship       (Ship)
 
 myAgent :: SpaceTradersT (APIResponse Agent)
-myAgent = send $ setRequestPath "/v2/my/agent"
+myAgent = do
+  a@(Right ag) <- send $ setRequestPath "/v2/my/agent"
+  setAgent ag
+  return a
+
 
 data RegisterRequest = RegisterRequest { faction :: T.Text
-                                       , symbol :: T.Text
+                                       , symbol  :: T.Text
                                        } deriving (ToJSON, Generic, Show)
-data RegisterMessage = RegisterMessage { agent :: Agent
+data RegisterMessage = RegisterMessage { agent    :: Agent
                                        , contract :: Contract
-                                       , ship :: Ship
-                                       , token :: T.Text
+                                       , ship     :: Ship
+                                       , token    :: T.Text
                                        } deriving (FromJSON, Generic, Show)
 
 register :: (HasRequest env, MonadIO m, MonadReader env m) => T.Text -> T.Text -> m (APIResponse RegisterMessage)

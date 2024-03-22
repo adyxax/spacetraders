@@ -1,5 +1,5 @@
 {-# LANGUAGE NumericUnderscores #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings  #-}
 
 module SpaceTraders.APIClient.Client
   ( APIMessage(..)
@@ -11,27 +11,27 @@ module SpaceTraders.APIClient.Client
   , tokenReq
   ) where
 
-import Control.Concurrent.Thread.Delay
-import Control.Monad
-import Control.Monad.Reader
-import Data.Aeson
-import Data.IORef
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import Network.HTTP.Simple
-import Network.HTTP.Types.Status
-import System.Directory
-import System.Environment
-import System.Posix.Process
+import           Control.Concurrent.Thread.Delay
+import           Control.Monad
+import           Control.Monad.Reader
+import           Data.Aeson
+import           Data.IORef
+import qualified Data.Text                         as T
+import qualified Data.Text.Encoding                as T
+import           Network.HTTP.Simple
+import           Network.HTTP.Types.Status
+import           System.Directory
+import           System.Environment
+import           System.Posix.Process
 
-import SpaceTraders
-import SpaceTraders.APIClient.Errors
-import SpaceTraders.APIClient.Pagination
-import SpaceTraders.Utils
+import           SpaceTraders
+import           SpaceTraders.APIClient.Errors
+import           SpaceTraders.APIClient.Pagination
+import           SpaceTraders.Utils
 
-data FromJSON a => APIMessage a = APIMessage { messageData :: a
-                                             , messagePagination :: Maybe Pagination
-                                             } deriving (Show)
+data APIMessage a = APIMessage { messageData       :: a
+                               , messagePagination :: Maybe Pagination
+                               } deriving (Show)
 instance FromJSON a => FromJSON (APIMessage a) where
   parseJSON = withObject "APIMessage" $ \o ->
     APIMessage <$> o .: "data"
@@ -45,7 +45,7 @@ defaultReq = setRequestHost "api.spacetraders.io"
            $ setRequestPort 443
            $ setRequestSecure True
            $ setRequestHeader "Content-Type" ["application/json"]
-           $ defaultRequest
+             defaultRequest
 
 tokenReq :: T.Text -> Request
 tokenReq token = setRequestHeader "Authorization" [T.encodeUtf8 $ "Bearer " <> token] defaultReq
@@ -54,7 +54,7 @@ send :: (FromJSON a, HasRequest env, MonadIO m, MonadReader env m) => (Request -
 send requestBuilder = do
   response <- sendPaginated Nothing requestBuilder
   case response of
-    Left e -> return $ Left e
+    Left e                 -> return $ Left e
     Right (APIMessage d _) -> return $ Right d
 
 sendPaginated :: (FromJSON a, HasRequest env, MonadIO m, MonadReader env m) => Maybe Pagination -> (Request -> Request) -> m (APIPaginatedResponse a)
@@ -63,7 +63,7 @@ sendPaginated pagination requestBuilder = do
   let request = requestBuilder $ getRequest env
       request' = case pagination of
         Just myPage -> setRequestQueryString [("limit", Just . int2ByteString $ limit myPage), ("page", Just . int2ByteString $ page myPage)]
-                                           $ request
+                                             request
         Nothing -> request
   sendPaginated' request'
   where
@@ -82,12 +82,12 @@ sendPaginated pagination requestBuilder = do
           body = getResponseBody response
       if status >= 200 && status <= 299
         then case eitherDecode body of
-          Left e -> return . Left $ APIError (-1000) (T.pack $ concat ["Error decoding JSON APIMessage: ", e]) Null
+          Left e -> return . Left $ APIError (-1000) (T.pack $ "Error decoding JSON APIMessage: " ++ e) Null
           Right r -> return $ Right r
         else case eitherDecode body of
           Left e -> return . Left $ APIError (-status) (T.pack $ concat ["Error decoding JSON APIError: ", e, ". Got HTTP body: ", show body]) Null
           Right (APIRateLimit r) -> do
-            liftIO $ delay (1_000_000 * (round $ retryAfter r))
+            liftIO $ delay (1_000_000 * round (retryAfter r))
             sendPaginated' request
           Right (APIResetHappened _) -> liftIO $ do
             removeFile "spacetraders.db"

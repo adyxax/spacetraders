@@ -1,6 +1,3 @@
-{-# LANGUAGE NumericUnderscores #-}
-{-# LANGUAGE OverloadedStrings #-}
-
 module SpaceTraders
   ( SpaceTradersT
   , microSinceEpoch
@@ -16,13 +13,13 @@ module SpaceTraders
   , liftIO
   ) where
 
-import Control.Monad.IO.Class
-import Control.Monad.Reader
-import Data.IORef
-import Data.Time.Clock
-import Data.Time.Clock.POSIX
+import           Control.Monad.IO.Class
+import           Control.Monad.Reader
+import           Data.IORef
+import           Data.Time.Clock
+import           Data.Time.Clock.POSIX
 import qualified Database.SQLite.Simple as S
-import Network.HTTP.Simple
+import           Network.HTTP.Simple
 
 type SpaceTradersT a = ReaderT Env IO a
 
@@ -39,9 +36,9 @@ microSinceEpoch = do
   t <- getCurrentTime
   return $ floor . (1e6 *) . nominalDiffTimeToSeconds $ utcTimeToPOSIXSeconds t
 
-data Env = Env { envConn :: S.Connection
+data Env = Env { envConn        :: S.Connection
                , envLastAPICall :: IORef Integer
-               , envRequest :: Request }
+               , envRequest     :: Request }
 
 class HasDatabaseConn a where
   getConn :: a -> S.Connection

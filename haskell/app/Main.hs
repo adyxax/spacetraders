@@ -1,11 +1,10 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module Main (main) where
 
-import SpaceTraders
-import SpaceTraders.Automation.Init
-import SpaceTraders.APIClient.Ships
-import SpaceTraders.APIClient.Systems
+import           SpaceTraders
+import           SpaceTraders.APIClient.Agent
+import           SpaceTraders.APIClient.Contracts
+import           SpaceTraders.APIClient.Ships
+import           SpaceTraders.Automation.Init
 
 main :: IO ()
 main = do
@@ -15,7 +14,11 @@ main = do
   where
     main' :: SpaceTradersT ()
     main' = do
-      _ <- initSystems
+      -- refresh our core objects
+      _ <- myAgent
+      _ <- myContracts
       (Right ships) <- myShips -- work around to fetch the initial probe
-      _ <- orbit (head ships)
+      let cmdShip = head ships
+      (Right t) <- orbit cmdShip
+      liftIO $ print t
       return ()

@@ -1,20 +1,19 @@
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module SpaceTraders.Model.Waypoint
   ( Waypoint(..)
   ) where
 
-import Data.Aeson
-import qualified Data.Text as T
-import GHC.Generics
+import           Data.Aeson
+import qualified Data.Text    as T
+import           GHC.Generics
 
-data Waypoint = Waypoint { orbits :: Maybe T.Text
-                         , symbol :: T.Text
+data Waypoint = Waypoint { orbits       :: Maybe T.Text
+                         , symbol       :: T.Text
                          , waypointType :: T.Text
-                         , x :: Int
-                         , y :: Int
+                         , x            :: Int
+                         , y            :: Int
                          } deriving (Generic, Show)
 instance FromJSON Waypoint where
   parseJSON = withObject "Waypoint" $ \o ->
