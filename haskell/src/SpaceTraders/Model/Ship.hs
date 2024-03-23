@@ -6,6 +6,7 @@ module SpaceTraders.Model.Ship
   ( Ship(..)
   , isDocked
   , isInOrbit
+  , overNinetyPercentFuel
   ) where
 
 import           Data.Aeson
@@ -40,3 +41,10 @@ isDocked ship = status (nav ship) == "DOCKED"
 
 isInOrbit :: Ship -> Bool
 isInOrbit = not . isDocked
+
+overNinetyPercentFuel :: Ship -> Bool
+overNinetyPercentFuel ship = curr * 10 > capa * 9
+  where
+    curr = current f
+    capa = SpaceTraders.Model.Fuel.capacity f
+    f = fuel ship

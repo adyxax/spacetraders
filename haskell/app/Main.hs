@@ -5,6 +5,7 @@ import           SpaceTraders.APIClient.Agent
 import           SpaceTraders.APIClient.Contracts
 import           SpaceTraders.APIClient.Ships
 import           SpaceTraders.Automation.Init
+import           SpaceTraders.Database.Ships
 
 main :: IO ()
 main = do
@@ -15,10 +16,14 @@ main = do
     main' :: SpaceTradersT ()
     main' = do
       -- refresh our core objects
-      _ <- myAgent
-      _ <- myContracts
-      (Right ships) <- myShips -- work around to fetch the initial probe
+      (Right _) <- myAgent
+      (Right _) <- myContracts
+      (Right _) <- myShips
+      -- Testing
+      ships <- getShips
       let cmdShip = head ships
-      (Right t) <- orbit cmdShip
-      liftIO $ print t
+      t <- refuel cmdShip
+      liftIO . print $ case t of
+        (Right r) -> "response: " ++ show r
+        (Left e)  -> "error: " ++ show e
       return ()
