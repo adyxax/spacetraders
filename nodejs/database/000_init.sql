@@ -14,4 +14,4 @@ CREATE TABLE contracts (
 	data TEXT NOT NULL
 );
 CREATE UNIQUE INDEX contracts_data_id ON contracts (json_extract(data, '$.id'));
-CREATE UNIQUE INDEX contracts_data_fulfilled ON contracts (json_extract(data, '$.fulfilled'));
+CREATE INDEX contracts_data_fulfilled ON contracts (json_extract(data, '$.fulfilled'));
