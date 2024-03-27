@@ -1,22 +1,23 @@
 import fs from 'fs';
+import path from 'path';
 import Database from 'better-sqlite3';
 
-const allMigrations = [
-	'database/000_init.sql',
-	'database/001_systems.sql',
-	'database/002_ships.sql',
-	'database/003_surveys.sql',
-	'database/004_markets.sql',
-];
+let allMigrations: Array<string> = [];
+fs.readdir('./database/', function(err, files) {
+	if (err) throw err;
+	allMigrations = files.filter(e => e.match(/\.sql$/)).map(e => path.join('./database', e));
+});
 
-const db = new Database(
+export type DbData = {data: string};
+
+export const db = new Database(
 	process.env.NODE_ENV === 'test' ? 'test.db' : 'spacetraders.db',
 	process.env.NODE_ENV === 'development' ? { verbose: console.log } : undefined
 );
 db.pragma('foreign_keys = ON');
 db.pragma('journal_mode = WAL');
 
-function init() {
+function init(): void {
 	db.transaction(function migrate() {
 		let version;
 		try {
@@ -34,7 +35,7 @@ function init() {
 	})();
 }
 
-export function reset() {
+export function reset(): void {
 	const indices = db.prepare(`SELECT name FROM sqlite_master WHERE type = 'index';`).all() as Array<{name: string}>;
 	const tables = db.prepare(`SELECT name FROM sqlite_master WHERE type = 'table';`).all() as Array<{name: string}>;
 	const triggers = db.prepare(`SELECT name FROM sqlite_master WHERE type = 'trigger';`).all() as Array<{name: string}>;

@@ -34,7 +34,7 @@ async function runProcurement(contract: Contract, ships: Array<Ship>) {
 	// TODO check if contract is fulfilled!
 	const wantedCargo = contract.terms.deliver[0].tradeSymbol;
 	const deliveryPoint = contract.terms.deliver[0].destinationSymbol;
-	const asteroids = await systems.type({symbol: ships[0].nav.systemSymbol, type: 'ENGINEERED_ASTEROID'});
+	const asteroids = await systems.type(ships[0].nav.systemSymbol, 'ENGINEERED_ASTEROID');
 	const asteroidSymbol = asteroids[0].symbol;
 	ships.forEach(async function(ship) {
 		while (!contract.fulfilled) {
@@ -46,12 +46,8 @@ async function runProcurement(contract: Contract, ships: Array<Ship>) {
 			// Then it depends on where we are
 			switch (ship.nav.waypointSymbol) {
 				case asteroidSymbol:
-					await mining.mineUntilFullOf({
-						asteroidSymbol: asteroidSymbol,
-						good: wantedCargo,
-						symbol: ship.symbol
-					});
-					await libShips.navigate(ship, deliveryPoint);
+					ship = await mining.mineUntilFullOf(wantedCargo, ship, asteroidSymbol);
+					ship = await libShips.navigate(ship, deliveryPoint);
 					break;
 				case deliveryPoint:
 					if (goodCargo !== undefined) { // we could be here if a client restart happens right after selling before we navigate away
@@ -59,12 +55,12 @@ async function runProcurement(contract: Contract, ships: Array<Ship>) {
 						contract = await contracts.deliver(contract, ship);
 						if (contract.fulfilled) break;
 					}
-					await libShips.navigate(ship, asteroidSymbol);
+					ship = await libShips.navigate(ship, asteroidSymbol);
 					break;
 				default:
 					// we were either selling or started contracting
-					await selling.sell(ship, wantedCargo);
-					await libShips.navigate(ship, asteroidSymbol);
+					ship = await selling.sell(ship, wantedCargo);
+					ship = await libShips.navigate(ship, asteroidSymbol);
 			}
 		}
 		// TODO repurpose the ship

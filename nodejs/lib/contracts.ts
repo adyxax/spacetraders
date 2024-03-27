@@ -12,21 +12,17 @@ import * as libShips from '../lib/ships.ts';
 export async function accept(contract: Contract): Promise<Contract> {
 	if (contract.accepted) return contract;
 	const response = await api.send<{agent: Agent, contract: Contract, type: ''}>({endpoint: `/my/contracts/${contract.id}/accept`, method: 'POST'});
-	if ('apiError' in response) {
+	if (response.error) {
 		api.debugLog(response);
 		throw response;
 	}
-	dbAgents.setAgent(response.agent);
-	dbContracts.setContract(response.contract);
-	return response.contract;
+	dbAgents.setAgent(response.data.agent);
+	dbContracts.setContract(response.data.contract);
+	return response.data.contract;
 }
 
 export async function contracts(): Promise<Array<Contract>> {
-	const response = await api.sendPaginated<Contract>({endpoint: '/my/contracts', page: 1});
-	if ('apiError' in response) {
-		api.debugLog(response);
-		throw response;
-	}
+	const response = await api.sendPaginated<Contract>({endpoint: '/my/contracts'});
 	response.forEach(contract => dbContracts.setContract(contract));
 	return response;
 }
@@ -44,8 +40,8 @@ export async function deliver(contract: Contract, ship: Ship): Promise<Contract>
 		tradeSymbol: tradeSymbol,
 		units: units,
 	}});
-	if ('apiError' in response) {
-		switch(response.code) {
+	if (response.error) {
+		switch(response.error.code) {
 			case 4509: // contract delivery terms have been met
 				return await fulfill(contract);
 			default: // yet unhandled error
@@ -53,22 +49,22 @@ export async function deliver(contract: Contract, ship: Ship): Promise<Contract>
 				throw response;
 		}
 	}
-	dbContracts.setContract(response.contract);
-	dbShips.setShipCargo(ship.symbol, response.cargo);
-	if(response.contract.terms.deliver[0].unitsRequired >= response.contract.terms.deliver[0].unitsFulfilled) {
-		return await fulfill(contract);
+	dbContracts.setContract(response.data.contract);
+	dbShips.setShipCargo(ship.symbol, response.data.cargo);
+	if(response.data.contract.terms.deliver[0].unitsRequired >= response.data.contract.terms.deliver[0].unitsFulfilled) {
+		return await fulfill(response.data.contract);
 	}
-	return response.contract;
+	return response.data.contract;
 }
 
 export async function fulfill(contract: Contract): Promise<Contract> {
 	if (contract.fulfilled) return contract;
 	const response = await api.send<{agent: Agent, contract: Contract}>({ endpoint: `/my/contracts/${contract.id}/fulfill`, method: 'POST'});
-	if ('apiError' in response) {
+	if (response.error) {
 		api.debugLog(response);
 		throw response;
 	}
-	dbAgents.setAgent(response.agent);
-	dbContracts.setContract(response.contract);
-	return response.contract;
+	dbAgents.setAgent(response.data.agent);
+	dbContracts.setContract(response.data.contract);
+	return response.data.contract;
 }

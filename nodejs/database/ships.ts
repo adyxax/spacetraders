@@ -1,4 +1,4 @@
-import db from './db.ts';
+import { DbData, db } from './db.ts';
 import { Cargo } from '../model/cargo.ts';
 import { Fuel, Nav, Ship } from '../model/ship.ts';
 
@@ -11,18 +11,18 @@ const setShipNavStatement = db.prepare(`UPDATE ships SET data = (SELECT json_set
 const updateShipStatement = db.prepare(`UPDATE ships SET data = json(:data) WHERE data->>'symbol' = :symbol;`);
 
 export function getShip(symbol: string): Ship|null {
-	const data = getShipStatement.get(symbol) as {data: string}|undefined;
+	const data = getShipStatement.get(symbol) as DbData|undefined;
 	if (!data) return null;
 	return JSON.parse(data.data);
 }
 
-export function getShipsAt(symbol: string) {
-	const data = getShipsAtStatement.all(symbol) as Array<{data: string}>;
+export function getShipsAt(symbol: string): Array<Ship> {
+	const data = getShipsAtStatement.all(symbol) as Array<DbData>;
 	return data.map(elt => JSON.parse(elt.data));
 }
 
 
-export function setShip(data: Ship) {
+export function setShip(data: Ship): void {
 	if (getShip(data.symbol) === null) {
 		addShipStatement.run(JSON.stringify(data));
 	} else {
@@ -33,21 +33,21 @@ export function setShip(data: Ship) {
 	}
 }
 
-export function setShipCargo(symbol: string, cargo: Cargo) {
+export function setShipCargo(symbol: string, cargo: Cargo): void {
 	setShipCargoStatement.run({
 		cargo: JSON.stringify(cargo),
 		symbol: symbol,
 	});
 }
 
-export function setShipFuel(symbol: string, fuel: Fuel) {
+export function setShipFuel(symbol: string, fuel: Fuel): void {
 	setShipFuelStatement.run({
 		fuel: JSON.stringify(fuel),
 		symbol: symbol,
 	});
 }
 
-export function setShipNav(symbol: string, nav: Nav) {
+export function setShipNav(symbol: string, nav: Nav): void {
 	setShipNavStatement.run({
 		nav: JSON.stringify(nav),
 		symbol: symbol,

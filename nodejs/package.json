@@ -1,9 +1,15 @@
 {
+	"module": "nodenext",
 	"type": "module",
 	"engines": {
-		"node": ">=18.10.0"
+		"node": ">=21.6.2"
+	},
+	"devDependencies": {
+		"esrun": "^3.2.26",
+		"typescript": "^5.4.3"
 	},
 	"dependencies": {
-		"better-sqlite3": "^9.3.0"
+		"@types/better-sqlite3": "^7.6.9",
+		"better-sqlite3": "^9.4.3"
 	}
 }

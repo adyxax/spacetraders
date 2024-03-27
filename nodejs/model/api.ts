@@ -1,8 +1,7 @@
 export type APIError = {
-	apiError: 'APIError';
 	error: string;
 	code: number;
-	data: any; // TODO
+	data: unknown;
 };
 
 export type Meta = {

@@ -1,86 +1,60 @@
-import * as api from './api.js';
-import * as dbMarkets from '../database/markets.js';
-import * as dbShips from '../database/ships.js';
-import * as dbSystems from '../database/systems.js';
-import * as utils from './utils.js';
+import * as api from './api.ts';
+import * as dbMarkets from '../database/markets.ts';
+import * as dbShips from '../database/ships.ts';
+import * as dbSystems from '../database/systems.ts';
+import { Market } from '../model/market.ts'
+import { System, Waypoint } from '../model/system.ts'
+import * as utils from './utils.ts';
 
-// Retrieves a marketplace's market data for waypointSymbol
-export async function market(waypointSymbol: string) {
+export async function market(waypointSymbol: string): Promise<Market> {
     const data = dbMarkets.getMarketAtWaypoint(waypointSymbol);
-    if (data === null) {
-		if (dbShips.getShipsAt(waypointSymbol) === null) {
-			return null;
-		}
-		const systemSymbol = utils.systemFromWaypoint(waypointSymbol);
-		let d = await api.send({endpoint: `/systems/${systemSymbol}/waypoints/${waypointSymbol}/market`});
-		delete d.data.transactions;
-		dbMarkets.setMarket(d.data);
-		return d;
-    }
-    return data;
-}
-
-// Retrieves a shipyard's information for ctx.symbol
-export async function shipyard(ctx) {
-	const systemSymbol = utils.systemFromWaypoint(ctx.symbol);
-	return await api.send({endpoint: `/systems/${systemSymbol}/waypoints/${ctx.symbol}/shipyard`});
-}
-
-// Retrieves the system's information for ctx.symbol and caches it in the database
-export async function system(ctx) {
-	let s = dbSystems.getSystem(ctx.symbol);
-	if (s === null) {
-		const response = await api.send({endpoint: `/systems/${ctx.symbol}`});
-		if (response.error !== undefined) {
-			switch(response.error.code) {
-				case 404:
-					throw `Error retrieving info for system ${ctx.symbol}: ${response.error.message}`;
-				default: // yet unhandled error
-					throw response;
-			}
-		}
-		s = response.data;
-		dbSystems.setSystem(s);
+	if (data) { return data; }
+	const systemSymbol = utils.systemFromWaypoint(waypointSymbol);
+	let response = await api.send<Market>({endpoint: `/systems/${systemSymbol}/waypoints/${waypointSymbol}/market`});
+	if (response.error) {
+		api.debugLog(response);
+		throw response;
 	}
-	return s;
+	dbMarkets.setMarket(response.data);
+	return response.data;
 }
 
-// Retrieves a list of waypoints that have a specific ctx.trait like a SHIPYARD or a MARKETPLACE in the system ctx.symbol
-export async function trait(ctx) {
-	const w = await waypoints(ctx);
-	return w.filter(s => s.traits.some(t => t.symbol === ctx.trait));
+//export async function shipyard(waypoint: string): Promise<unknown> {
+//	// TODO database caching
+//	const systemSymbol = utils.systemFromWaypoint(waypoint);
+//	return await api.send({endpoint: `/systems/${systemSymbol}/waypoints/${waypoint}/shipyard`});
+//}
+
+export async function system(symbol: string): Promise<System> {
+	let data = dbSystems.getSystem(symbol);
+	if (data) { return data; }
+	const response = await api.send<System>({endpoint: `/systems/${symbol}`});
+	if (response.error) {
+		api.debugLog(response);
+		throw response;
+	}
+	dbSystems.setSystem(response.data);
+	return response.data;
 }
 
-// Retrieves a list of waypoints that have a specific ctx.type like ASTEROID_FIELD in the system ctx.symbol
-export async function type(ctx, response) {
-	const w = await waypoints(ctx);
-	return w.filter(s => s.type === ctx.type);
+// Retrieves a list of waypoints that have a specific trait like a SHIPYARD or a MARKETPLACE
+export async function trait(system: string, trait: string): Promise<Array<Waypoint>> {
+	const ws = await waypoints(system);
+	return ws.filter(w => w.traits.some(t => t.symbol === trait));
 }
 
-// Retrieves the system's information for ctx.symbol and caches it in the database
-export async function waypoints(ctx) {
-	await system(ctx);
-	let updated = dbSystems.getSystemUpdated(ctx.symbol);
+// Retrieves a list of waypoints that have a specific type like ASTEROID_FIELD
+export async function type(system: string, typeSymbol: string): Promise<Array<Waypoint>> {
+	const ws = await waypoints(system);
+	return ws.filter(s => s.type === typeSymbol);
+}
+
+export async function waypoints(systemSymbol: string): Promise<Array<Waypoint>> {
+	const s = await system(systemSymbol);
+	const updated = dbSystems.getSystemUpdated(systemSymbol);
 	// TODO handle uncharted systems
-	if (updated === null) {
-		let waypoints = [];
-		for (let page=1; true; ++page) {
-			const response = await api.send({endpoint: `/systems/${ctx.symbol}/waypoints?limit=20&page=${page}`, priority: 98});
-			if (response.error !== undefined) {
-				switch(response.error.code) {
-					case 404:
-						throw `Error retrieving waypoints for system ${ctx.symbol}: ${response.error.message}`;
-					default: // yet unhandled error
-						throw response;
-				}
-			}
-			waypoints = waypoints.concat(response.data);
-			if (response.meta.total <= response.meta.limit * page) {
-				break;
-			}
-		}
-		dbSystems.setSystemWaypoints(ctx.symbol, waypoints);
-		return waypoints;
-	}
-	return dbSystems.getSystem(ctx.symbol).waypoints;
+	if (updated) return s.waypoints;
+	const waypoints = await api.sendPaginated<Waypoint>({endpoint: `/systems/${systemSymbol}/waypoints`});
+	dbSystems.setSystemWaypoints(systemSymbol, waypoints);
+	return waypoints;
 }

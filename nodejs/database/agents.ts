@@ -1,20 +1,20 @@
 import { Agent } from '../model/agent.ts';
-import db from './db.js';
+import { DbData, db } from './db.ts';
 
 const addAgentStatement = db.prepare(`INSERT INTO agents(data) VALUES (json(?));`);
 const getAgentStatement = db.prepare(`SELECT data FROM agents;`);
 const setAgentStatement = db.prepare(`UPDATE agents SET data = json(?);`);
 
-export function addAgent(agent: Agent) {
+export function addAgent(agent: Agent): void {
 	addAgentStatement.run(JSON.stringify(agent));
 }
 
 export function getAgent(): Agent|null {
-	const data = getAgentStatement.get() as {data: string}|undefined;
+	const data = getAgentStatement.get() as DbData|undefined;
 	if (!data) return null;
 	return JSON.parse(data.data);
 }
 
-export function setAgent(agent: Agent) {
+export function setAgent(agent: Agent): void {
 	setAgentStatement.run(JSON.stringify(agent));
 }

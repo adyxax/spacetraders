@@ -25,6 +25,12 @@ export type Nav = {
 	waypointSymbol: string;
 };
 
+export type Registration = {
+	factionSymbol: string;
+	name: string;
+	role: string;
+};
+
 export type Route = {
 	arrival: Date;
 	departureTime: Date;
@@ -51,6 +57,6 @@ export type Ship = {
 	// mounts
 	nav: Nav;
 	// reactor
-	// registration
+	registration: Registration;
 	symbol: string;
 };

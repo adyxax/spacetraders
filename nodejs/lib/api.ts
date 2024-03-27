@@ -1,9 +1,10 @@
-import * as fs from 'fs';
-import * as events from 'events';
+import fs from 'fs';
+import events from 'events';
 
-import { APIError, Request, RequestPromise, Response } from '../model/api.ts';
-import { getToken } from '../database/tokens.ts';
 import { PriorityQueue } from './priority_queue.ts';
+import { getToken } from '../database/tokens.ts';
+import { APIError, Request, RequestPromise, Response } from '../model/api.ts';
+import { RateLimitError } from '../model/errors.ts';
 
 // queue processor module variables
 const bus = new events.EventEmitter(); // a bus to notify the queue processor to start processing messages
@@ -14,7 +15,7 @@ let running = false;
 let headers: {[key:string]:string}|null = null; // a file scoped variable so that we only evaluate these once.
 let queue = new PriorityQueue(); // a priority queue to hold api calls we want to send, allows for throttling.
 
-async function queue_processor() {
+async function queue_processor(): Promise<void> {
 	if (running) {
 		throw 'refusing to start a second queue processor';
 	}
@@ -45,29 +46,7 @@ async function queue_processor() {
 }
 queue_processor();
 
-export async function send<T>(request: Request): Promise<T|APIError> {
-	const response = await send_one<T>(request);
-	if (response.error) return response.error;
-	return response.data;
-}
-
-export async function sendPaginated<T>(request: Request): Promise<Array<T>|APIError> {
-	if (request.page === undefined) request.page = 1;
-	let ret: Array<T> = [];
-	while (true) {
-		const response = await send_one<T>(request);
-		if (response.meta === undefined) {
-			throw {"message": "paginated request did not return a meta block", "request": request, "response": response};
-		}
-		ret = ret.concat(response.data);
-		if (response.meta.limit * response.meta.page >= response.meta.total) {
-			return ret;
-		}
-		request.page++;
-	}
-}
-
-function send_one<T>(request: Request): Promise<Response<T>> {
+export async function send<T>(request: Request): Promise<Response<T>> {
 	return new Promise((resolve, reject) => {
 		const data: RequestPromise<T> = {
 			reject: reject,
@@ -81,8 +60,26 @@ function send_one<T>(request: Request): Promise<Response<T>> {
 	});
 }
 
+export async function sendPaginated<T>(request: Request): Promise<Array<T>> {
+	if (request.page === undefined) request.page = 1;
+	let ret: Array<T> = [];
+	while (true) {
+		const response = await send<T>(request);
+		if (response.meta === undefined) {
+			throw {"message": "paginated request did not return a meta block", "request": request, "response": response};
+		} else if (response.error) {
+			throw {"message": "paginated request returned an error", "request": request, "response": response};
+		}
+		ret = ret.concat(response.data);
+		if (response.meta.limit * response.meta.page >= response.meta.total) {
+			return ret;
+		}
+		request.page++;
+	}
+}
+
 // send_this take a data object as argument built in the send function above
-async function send_this(data: RequestPromise<unknown>) {
+async function send_this(data: RequestPromise<unknown>): Promise<void> {
 	if (headers === null) {
 		const token = getToken();
 		if (token === null) {
@@ -119,7 +116,8 @@ async function send_this(data: RequestPromise<unknown>) {
 				// spawnSync?
 				// break;
 			case 429:  // 429 means rate limited, let's hold back as instructed
-				backoffSeconds = json.error.data.retryAfter;
+				const errorData = json.error.data as RateLimitError;
+				backoffSeconds = errorData.retryAfter;
 				queue.enqueue(data, 1);
 				break;
 			case 503:  // 503 means maintenance mode, let's hold back for 1 minute
@@ -150,7 +148,7 @@ async function send_this(data: RequestPromise<unknown>) {
 	}
 }
 
-export function debugLog(ctx: any) {
+export function debugLog(ctx: any): void {
 	console.log(`--- ${Date()} -----------------------------------------------------------------------------`);
 	console.log(JSON.stringify(ctx, null, 2));
 }
