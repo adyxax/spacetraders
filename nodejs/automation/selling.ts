@@ -11,6 +11,7 @@ import { Ship } from '../model/ship.ts';
 // example ctx { ship: {XXX}, keep: 'SILVER_ORE' }
 export async function sell(ship: Ship, good: string): Promise<Ship> {
     outer: while(true) {
+		ship = dbShips.getShip(ship.symbol);
 		// first lets see what we want to sell
 		let cargo = utils.categorizeCargo(ship.cargo, good);
 		// get the marketdata from our location
@@ -19,7 +20,7 @@ export async function sell(ship: Ship, good: string): Promise<Ship> {
 		const goods = whatCanBeTradedAt(cargo.goods, market.imports.concat(market.exchange));
 		for (let i = 0; i < goods.length; i++) {
 			const symbol = goods[i].symbol;
-			ship = await libShips.sell(ship, good);
+			await libShips.sell(ship, good);
 		};
 		// are we done selling everything we can?
 		cargo = utils.categorizeCargo(ship.cargo, good);
@@ -49,7 +50,7 @@ export async function sell(ship: Ship, good: string): Promise<Ship> {
 			// if we have no data on the market we need to go there and see
 			// and if we have data and can sell there we need to go too
 			if (market === null || whatCanBeTradedAt(cargo.goods, market.imports).length > 0) {
-				ship = await libShips.navigate(ship, waypointSymbol);
+				await libShips.navigate(ship, waypointSymbol);
 				continue outer;
 			}
 		}
@@ -59,7 +60,7 @@ export async function sell(ship: Ship, good: string): Promise<Ship> {
 			const market = await libSystems.market(waypointSymbol);
 			// if we can sell there we need to go
 			if (whatCanBeTradedAt(cargo.goods, market.exchange).length > 0) {
-				ship = await libShips.navigate(ship, waypointSymbol);
+				await libShips.navigate(ship, waypointSymbol);
 				continue outer;
 			}
 		}

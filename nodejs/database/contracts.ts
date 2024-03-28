@@ -6,9 +6,9 @@ const getContractStatement = db.prepare(`SELECT data FROM contracts WHERE data->
 const getContractsStatement = db.prepare(`SELECT data FROM contracts WHERE data->>'fulfilled' = false;`);
 const updateContractStatement = db.prepare(`UPDATE contracts SET data = json(:data) WHERE data->>'id' = :id;`);
 
-export function getContract(id: string): Contract|null {
+export function getContract(id: string): Contract {
 	const data = getContractStatement.get(id) as DbData|undefined;
-	if (!data) return null;
+	if (!data) throw `invalid id ${id} in getContract database call`;
 	return JSON.parse(data.data);
 }
 

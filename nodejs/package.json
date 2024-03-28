@@ -6,7 +6,8 @@
 	},
 	"devDependencies": {
 		"esrun": "^3.2.26",
-		"typescript": "^5.4.3"
+		"typescript": "^5.4.3",
+		"typescript-language-server": "^4.3.3"
 	},
 	"dependencies": {
 		"@types/better-sqlite3": "^7.6.9",

@@ -8,8 +8,9 @@ import * as dbShips from '../database/ships.ts';
 //import * as dbSurveys from '../database/surveys.ts';
 import * as systems from '../lib/systems.ts';
 
-export async function dock(ship: Ship): Promise<Ship> {
-	if (ship.nav.status === 'DOCKED') return ship;
+export async function dock(ship: Ship): Promise<void> {
+	ship = dbShips.getShip(ship.symbol);
+	if (ship.nav.status === 'DOCKED') return;
 	const response = await api.send<{nav: Nav}>({endpoint: `/my/ships/${ship.symbol}/dock`, method: 'POST'});
 	if (response.error) {
 		switch(response.error.code) {
@@ -23,16 +24,16 @@ export async function dock(ship: Ship): Promise<Ship> {
 		}
 	}
 	dbShips.setShipNav(ship.symbol, response.data.nav);
-	ship.nav = response.data.nav;
-	return ship;
 }
 
-export async function extract(ship: Ship): Promise<Ship> {
+export async function extract(ship: Ship): Promise<Cargo> {
+	ship = dbShips.getShip(ship.symbol);
+	if (ship.cargo.units >= ship.cargo.capacity * 0.9) return ship.cargo;
 	// TODO move to a suitable asteroid?
 	// const asteroidFields = await systems.type({symbol: ship.nav.systemSymbol, type: 'ENGINEERED_ASTEROID'});
 	// TODO if there are multiple fields, find the closest one?
 	//await navigate({symbol: ctx.symbol, waypoint: asteroidFields[0].symbol});
-	ship = await orbit(ship);
+	await orbit(ship);
 	// TODO handle surveying?
 	const response = await api.send<{cooldown: Cooldown, cargo: Cargo}>({endpoint: `/my/ships/${ship.symbol}/extract`, method: 'POST'}); // TODO extraction and events api response fields cf https://spacetraders.stoplight.io/docs/spacetraders/b3931d097608d-extract-resources
 	if (response.error) {
@@ -42,17 +43,16 @@ export async function extract(ship: Ship): Promise<Ship> {
 				await api.sleep(errorData.cooldown.remainingSeconds  * 1000);
 				return await extract(ship);
 			case 4228: // ship is full
-				return ship;
+				return ship.cargo;
 			default: // yet unhandled error
 				api.debugLog(response);
 				throw response;
 		}
 	} else {
 		dbShips.setShipCargo(ship.symbol, response.data.cargo);
-		ship.cargo = response.data.cargo;
 		await api.sleep(response.data.cooldown.remainingSeconds*1000);
 	}
-	return ship;
+	return response.data.cargo
 }
 
 //function hasMount(shipSymbol, mountSymbol) {
@@ -67,9 +67,10 @@ export async function extract(ship: Ship): Promise<Ship> {
 //	return response;
 //}
 
-export async function navigate(ship: Ship, waypoint: string): Promise<Ship> {
-	if (ship.nav.waypointSymbol === waypoint) return ship;
-	ship = await orbit(ship);
+export async function navigate(ship: Ship, waypoint: string): Promise<void> {
+	ship = dbShips.getShip(ship.symbol);
+	if (ship.nav.waypointSymbol === waypoint) return;
+	await orbit(ship);
 	// TODO if we do not have enough fuel, make a stop to refuel along the way or drift to the destination
 	const response = await api.send<{fuel: Fuel, nav: Nav}>({endpoint: `/my/ships/${ship.symbol}/navigate`, method: 'POST', payload: { waypointSymbol: waypoint }}); // TODO events field
 	if (response.error) {
@@ -85,15 +86,12 @@ export async function navigate(ship: Ship, waypoint: string): Promise<Ship> {
 	}
 	dbShips.setShipFuel(ship.symbol, response.data.fuel);
 	dbShips.setShipNav(ship.symbol, response.data.nav);
-	ship.fuel = response.data.fuel;
-	ship.nav = response.data.nav
 	const delay = new Date(response.data.nav.route.arrival).getTime()  - new Date().getTime() ;
 	await api.sleep(delay);
 	response.data.nav.status = 'IN_ORBIT'; // we arrive in orbit
 	dbShips.setShipNav(ship.symbol, response.data.nav);
-	ship.nav = response.data.nav
 	// TODO only refuel at the start of a journey, if we do not have enough OR if the destination does not sell fuel?
-	return await refuel(ship);
+	await refuel(ship);
 }
 
 //export async function negotiate(ctx) {
@@ -101,8 +99,9 @@ export async function navigate(ship: Ship, waypoint: string): Promise<Ship> {
 //	return await api.send({endpoint: `/my/ships/${ctx.ship}/negotiate/contract`, method: 'POST'});
 //}
 
-export async function orbit(ship: Ship): Promise<Ship> {
-	if (ship.nav.status === 'IN_ORBIT') return ship;
+export async function orbit(ship: Ship): Promise<void> {
+	ship = dbShips.getShip(ship.symbol);
+	if (ship.nav.status === 'IN_ORBIT') return;
 	const response = await api.send<{nav: Nav}>({endpoint: `/my/ships/${ship.symbol}/orbit`, method: 'POST'});
 	if (response.error) {
 		switch(response.error.code) {
@@ -115,8 +114,6 @@ export async function orbit(ship: Ship): Promise<Ship> {
 		}
 	}
 	dbShips.setShipNav(ship.symbol, response.data.nav);
-	ship.nav = response.data.nav;
-	return ship;
 }
 
 //export async function purchase(ctx) {
@@ -131,10 +128,11 @@ export async function orbit(ship: Ship): Promise<Ship> {
 //	return response.data;
 //}
 
-export async function refuel(ship: Ship): Promise<Ship> {
-	if (ship.fuel.current >= ship.fuel.capacity * 0.9) return ship;
+export async function refuel(ship: Ship): Promise<void> {
+	ship = dbShips.getShip(ship.symbol);
+	if (ship.fuel.current >= ship.fuel.capacity * 0.9) return;
 	// TODO check if our current waypoint has a marketplace (and sells fuel)?
-	ship = await dock(ship);
+	await dock(ship);
 	const response = await api.send<{agent: Agent, fuel: Fuel}>({endpoint: `/my/ships/${ship.symbol}/refuel`, method: 'POST'}); // TODO transaction field
 	if (response.error) {
 		api.debugLog(response);
@@ -142,13 +140,12 @@ export async function refuel(ship: Ship): Promise<Ship> {
 	}
 	dbShips.setShipFuel(ship.symbol, response.data.fuel);
 	dbAgents.setAgent(response.data.agent);
-	ship.fuel = response.data.fuel;
-	return ship;
 }
 
-export async function sell(ship: Ship, tradeSymbol: string): Promise<Ship> {
+export async function sell(ship: Ship, tradeSymbol: string): Promise<Cargo> {
+	ship = dbShips.getShip(ship.symbol);
 	// TODO check if our current waypoint has a marketplace and buys tradeSymbol?
-	ship = await dock(ship);
+	await dock(ship);
 	let units = 0;
 	ship.cargo.inventory.forEach(i => {if (i.symbol === tradeSymbol) units = i.units; });
 	const response = await api.send<{agent: Agent, cargo: Cargo}>({endpoint: `/my/ships/${ship.symbol}/sell`, method: 'POST', payload: { symbol: tradeSymbol, units: units }}); // TODO transaction field
@@ -158,8 +155,7 @@ export async function sell(ship: Ship, tradeSymbol: string): Promise<Ship> {
 	}
 	dbShips.setShipCargo(ship.symbol, response.data.cargo);
 	dbAgents.setAgent(response.data.agent);
-	ship.cargo = response.data.cargo;
-	return ship;
+	return response.data.cargo;
 }
 
 export async function ships(): Promise<Array<Ship>> {

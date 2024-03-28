@@ -46,8 +46,8 @@ async function runProcurement(contract: Contract, ships: Array<Ship>) {
 			// Then it depends on where we are
 			switch (ship.nav.waypointSymbol) {
 				case asteroidSymbol:
-					ship = await mining.mineUntilFullOf(wantedCargo, ship, asteroidSymbol);
-					ship = await libShips.navigate(ship, deliveryPoint);
+					await mining.mineUntilFullOf(wantedCargo, ship, asteroidSymbol);
+					await libShips.navigate(ship, deliveryPoint);
 					break;
 				case deliveryPoint:
 					if (goodCargo !== undefined) { // we could be here if a client restart happens right after selling before we navigate away
@@ -55,12 +55,12 @@ async function runProcurement(contract: Contract, ships: Array<Ship>) {
 						contract = await contracts.deliver(contract, ship);
 						if (contract.fulfilled) break;
 					}
-					ship = await libShips.navigate(ship, asteroidSymbol);
+					await libShips.navigate(ship, asteroidSymbol);
 					break;
 				default:
 					// we were either selling or started contracting
-					ship = await selling.sell(ship, wantedCargo);
-					ship = await libShips.navigate(ship, asteroidSymbol);
+					await selling.sell(ship, wantedCargo);
+					await libShips.navigate(ship, asteroidSymbol);
 			}
 		}
 		// TODO repurpose the ship

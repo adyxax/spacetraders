@@ -5,5 +5,6 @@ import * as autoInit from './automation/init.ts';
 //import * as contracts from './lib/contracts.ts';
 
 await autoInit.init();
+
 autoContracting.init();
 //autoExploring.init();

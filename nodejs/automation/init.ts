@@ -8,7 +8,8 @@ import { Response } from '../model/api.ts';
 import { Contract } from '../model/contract.ts';
 import { Ship } from '../model/ship.ts';
 import * as api from '../lib/api.ts';
-import * as ships from '../lib/ships.ts';
+import * as libContracts from '../lib/contracts.ts';
+import * as libShips from '../lib/ships.ts';
 
 const symbol = process.env.NODE_ENV === 'test' ? 'ADYXAX-0' : 'ADYXAX-JS';
 
@@ -27,17 +28,19 @@ export async function init(): Promise<void> {
     const json = await response.json() as Response<{agent: Agent, contract: Contract, ship: Ship, token: string}>;
 	if (json.error !== undefined) {
 		switch(json.error?.code) {
-		case 4111:  // 4111 means the agent symbol has already been claimed so no server reset happened
-			return;
-		default:
-			throw json;
+			case 4111:  // 4111 means the agent symbol has already been claimed so no server reset happened
+				await libContracts.contracts();
+				await libShips.ships();
+				return;
+			default:
+				throw json;
 		}
 	}
 	db.reset();
+	dbTokens.addToken(json.data.token);
 	dbAgents.addAgent(json.data.agent);
 	dbContracts.setContract(json.data.contract);
 	dbShips.setShip(json.data.ship);
-	dbTokens.addToken(json.data.token);
 	// Temporary fix to fetch the data on the startup probe
-	ships.ships();
+	await libShips.ships();
 }

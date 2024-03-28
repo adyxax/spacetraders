@@ -10,9 +10,9 @@ const setShipFuelStatement = db.prepare(`UPDATE ships SET data = (SELECT json_se
 const setShipNavStatement = db.prepare(`UPDATE ships SET data = (SELECT json_set(data, '$.nav', json(:nav)) FROM ships WHERE data->>'symbol' = :symbol) WHERE data->>'symbol' = :symbol;`);
 const updateShipStatement = db.prepare(`UPDATE ships SET data = json(:data) WHERE data->>'symbol' = :symbol;`);
 
-export function getShip(symbol: string): Ship|null {
+export function getShip(symbol: string): Ship {
 	const data = getShipStatement.get(symbol) as DbData|undefined;
-	if (!data) return null;
+	if (!data) throw `invalid symbol ${symbol} in getShip database call`;
 	return JSON.parse(data.data);
 }
 
