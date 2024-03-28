@@ -20,12 +20,9 @@ export async function mineUntilFullOf(good: string, ship: Ship, asteroidSymbol: 
 	}
 }
 
-// example ctx { symbol: 'ADYXAX-2' }
-// extract the ship's cargo contents when more than 80% full then returns the ships cargo object
 async function mineUntilFull(ship: Ship): Promise<void> {
-	ship = dbShips.getShip(ship.symbol) as Ship;
-	while (ship.cargo.units <= ship.cargo.capacity * 0.9) {
-		ship.cargo = await libShips.extract(ship);
+	while (!libShips.isFull(ship)) {
+		await libShips.extract(ship);
 	}
 }
 

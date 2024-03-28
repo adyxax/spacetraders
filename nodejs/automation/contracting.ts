@@ -58,9 +58,11 @@ async function runProcurement(contract: Contract, ships: Array<Ship>) {
 					await libShips.navigate(ship, asteroidSymbol);
 					break;
 				default:
-					// we were either selling or started contracting
-					await selling.sell(ship, wantedCargo);
-					await libShips.navigate(ship, asteroidSymbol);
+					if (libShips.isFull(ship)) {
+						await selling.sell(ship, wantedCargo);
+					} else {
+						await libShips.navigate(ship, asteroidSymbol);
+					}
 			}
 		}
 		// TODO repurpose the ship

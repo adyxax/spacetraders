@@ -28,7 +28,7 @@ export async function dock(ship: Ship): Promise<void> {
 
 export async function extract(ship: Ship): Promise<Cargo> {
 	ship = dbShips.getShip(ship.symbol);
-	if (ship.cargo.units >= ship.cargo.capacity * 0.9) return ship.cargo;
+	if (isFull(ship)) return ship.cargo;
 	// TODO move to a suitable asteroid?
 	// const asteroidFields = await systems.type({symbol: ship.nav.systemSymbol, type: 'ENGINEERED_ASTEROID'});
 	// TODO if there are multiple fields, find the closest one?
@@ -53,6 +53,11 @@ export async function extract(ship: Ship): Promise<Cargo> {
 		await api.sleep(response.data.cooldown.remainingSeconds*1000);
 	}
 	return response.data.cargo
+}
+
+export function isFull(ship: Ship): boolean {
+	ship = dbShips.getShip(ship.symbol);
+	return ship.cargo.units >= ship.cargo.capacity * 0.9;
 }
 
 //function hasMount(shipSymbol, mountSymbol) {

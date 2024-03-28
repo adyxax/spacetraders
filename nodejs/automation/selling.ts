@@ -19,10 +19,10 @@ export async function sell(ship: Ship, good: string): Promise<Ship> {
 		// can we sell anything here?
 		const goods = whatCanBeTradedAt(cargo.goods, market.imports.concat(market.exchange));
 		for (let i = 0; i < goods.length; i++) {
-			const symbol = goods[i].symbol;
-			await libShips.sell(ship, good);
+			await libShips.sell(ship, goods[i].symbol);
 		};
 		// are we done selling everything we can?
+		ship = dbShips.getShip(ship.symbol);
 		cargo = utils.categorizeCargo(ship.cargo, good);
 		if (Object.keys(cargo.goods).length === 0) {
 			return ship;
