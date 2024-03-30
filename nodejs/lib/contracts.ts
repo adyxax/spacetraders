@@ -22,16 +22,29 @@ export async function accept(contract: Contract): Promise<Contract> {
 	return response.data.contract;
 }
 
-export async function contracts(): Promise<Array<Contract>> {
+export async function getContracts(): Promise<Array<Contract>> {
 	const response = await api.sendPaginated<Contract>({endpoint: '/my/contracts'});
 	response.forEach(contract => dbContracts.setContract(contract));
 	return response;
 }
 
+export async function getContract(contract: Contract): Promise<Contract> {
+	try {
+		return dbContracts.getContract(contract.id);
+	} catch {}
+	const response = await api.send<Contract>({endpoint: `/my/contracts/${contract.id}`});
+	if (response.error) {
+		api.debugLog(response);
+		throw response;
+	}
+	dbContracts.setContract(response.data);
+	return response.data;
+}
+
 export async function deliver(contract: Contract, ship: Ship): Promise<Contract> {
 	contract = dbContracts.getContract(contract.id);
 	ship = dbShips.getShip(ship.symbol);
-	if (contract.terms.deliver[0].unitsRequired >= contract.terms.deliver[0].unitsFulfilled) {
+	if (contract.terms.deliver[0].unitsRequired <= contract.terms.deliver[0].unitsFulfilled) {
 		return await fulfill(contract);
 	}
 	const tradeSymbol = contract.terms.deliver[0].tradeSymbol;
@@ -54,7 +67,7 @@ export async function deliver(contract: Contract, ship: Ship): Promise<Contract>
 	}
 	dbContracts.setContract(response.data.contract);
 	dbShips.setShipCargo(ship.symbol, response.data.cargo);
-	if(response.data.contract.terms.deliver[0].unitsRequired >= response.data.contract.terms.deliver[0].unitsFulfilled) {
+	if(response.data.contract.terms.deliver[0].unitsRequired <= response.data.contract.terms.deliver[0].unitsFulfilled) {
 		return await fulfill(response.data.contract);
 	}
 	return response.data.contract;

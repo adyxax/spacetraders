@@ -18,12 +18,9 @@ export function getContracts(): Array<Contract> {
 }
 
 export function setContract(data: Contract): void {
-	if (getContract(data.id) === null) {
-		addContractStatement.run(JSON.stringify(data));
-	} else {
-		updateContractStatement.run({
-			data: JSON.stringify(data),
-			id: data.id,
-		});
-	}
+	const changes = updateContractStatement.run({
+		data: JSON.stringify(data),
+		id: data.id,
+	}).changes;
+	if (changes === 0) addContractStatement.run(JSON.stringify(data));
 }

@@ -1,6 +1,7 @@
 import { Response } from '../model/api.ts';
 import { Agent } from '../model/agent.ts';
 import { Cargo } from '../model/cargo.ts';
+import { Contract } from '../model/contract.ts';
 import { Cooldown, Fuel, Nav, Ship } from '../model/ship.ts';
 import * as api from './api.ts';
 import * as dbAgents from '../database/agents.ts';
@@ -9,7 +10,7 @@ import * as dbShips from '../database/ships.ts';
 import * as systems from '../lib/systems.ts';
 
 export async function dock(ship: Ship): Promise<void> {
-	ship = dbShips.getShip(ship.symbol);
+	ship = await getShip(ship);
 	if (ship.nav.status === 'DOCKED') return;
 	const response = await api.send<{nav: Nav}>({endpoint: `/my/ships/${ship.symbol}/dock`, method: 'POST'});
 	if (response.error) {
@@ -27,8 +28,8 @@ export async function dock(ship: Ship): Promise<void> {
 }
 
 export async function extract(ship: Ship): Promise<Cargo> {
-	ship = dbShips.getShip(ship.symbol);
-	if (isFull(ship)) return ship.cargo;
+	ship = await getShip(ship);
+	if (await isFull(ship)) return ship.cargo;
 	// TODO move to a suitable asteroid?
 	// const asteroidFields = await systems.type({symbol: ship.nav.systemSymbol, type: 'ENGINEERED_ASTEROID'});
 	// TODO if there are multiple fields, find the closest one?
@@ -55,8 +56,8 @@ export async function extract(ship: Ship): Promise<Cargo> {
 	return response.data.cargo
 }
 
-export function isFull(ship: Ship): boolean {
-	ship = dbShips.getShip(ship.symbol);
+export async function isFull(ship: Ship): Promise<boolean> {
+	ship = await getShip(ship);
 	return ship.cargo.units >= ship.cargo.capacity * 0.9;
 }
 
@@ -73,7 +74,7 @@ export function isFull(ship: Ship): boolean {
 //}
 
 export async function navigate(ship: Ship, waypoint: string): Promise<void> {
-	ship = dbShips.getShip(ship.symbol);
+	ship = await getShip(ship);
 	if (ship.nav.waypointSymbol === waypoint) return;
 	await orbit(ship);
 	// TODO if we do not have enough fuel, make a stop to refuel along the way or drift to the destination
@@ -99,13 +100,25 @@ export async function navigate(ship: Ship, waypoint: string): Promise<void> {
 	await refuel(ship);
 }
 
-//export async function negotiate(ctx) {
-//	// TODO
-//	return await api.send({endpoint: `/my/ships/${ctx.ship}/negotiate/contract`, method: 'POST'});
-//}
+export async function negotiate(ship: Ship): Promise<Contract> {
+	ship = await getShip(ship);
+	const response = await api.send<{contract: Contract}>({endpoint: `/my/ships/${ship.symbol}/negotiate/contract`, method: 'POST'});
+	if (response.error) {
+		switch(response.error.code) {
+			case 4214: // ship is in transit
+				const errorData = response.error.data as { secondsToArrival: number};
+				await api.sleep(errorData.secondsToArrival * 1000);
+				return await negotiate(ship);
+			default: // yet unhandled error
+				api.debugLog(response);
+				throw response;
+		}
+	}
+	return response.data.contract;
+}
 
 export async function orbit(ship: Ship): Promise<void> {
-	ship = dbShips.getShip(ship.symbol);
+	ship = await getShip(ship);
 	if (ship.nav.status === 'IN_ORBIT') return;
 	const response = await api.send<{nav: Nav}>({endpoint: `/my/ships/${ship.symbol}/orbit`, method: 'POST'});
 	if (response.error) {
@@ -115,6 +128,7 @@ export async function orbit(ship: Ship): Promise<void> {
 				await api.sleep(errorData.secondsToArrival * 1000);
 				return await orbit(ship);
 			default: // yet unhandled error
+				api.debugLog(response);
 				throw response;
 		}
 	}
@@ -134,7 +148,7 @@ export async function orbit(ship: Ship): Promise<void> {
 //}
 
 export async function refuel(ship: Ship): Promise<void> {
-	ship = dbShips.getShip(ship.symbol);
+	ship = await getShip(ship);
 	if (ship.fuel.current >= ship.fuel.capacity * 0.9) return;
 	// TODO check if our current waypoint has a marketplace (and sells fuel)?
 	await dock(ship);
@@ -148,7 +162,7 @@ export async function refuel(ship: Ship): Promise<void> {
 }
 
 export async function sell(ship: Ship, tradeSymbol: string): Promise<Cargo> {
-	ship = dbShips.getShip(ship.symbol);
+	ship = await getShip(ship);
 	// TODO check if our current waypoint has a marketplace and buys tradeSymbol?
 	await dock(ship);
 	let units = 0;
@@ -163,7 +177,7 @@ export async function sell(ship: Ship, tradeSymbol: string): Promise<Cargo> {
 	return response.data.cargo;
 }
 
-export async function ships(): Promise<Array<Ship>> {
+export async function getShips(): Promise<Array<Ship>> {
 	const response = await api.send<Array<Ship>>({endpoint: `/my/ships`, page: 1});
 	if (response.error) {
 		api.debugLog(response);
@@ -173,7 +187,10 @@ export async function ships(): Promise<Array<Ship>> {
 	return response.data;
 }
 
-export async function ship(ship: Ship): Promise<Ship> {
+export async function getShip(ship: Ship): Promise<Ship> {
+	try {
+		return dbShips.getShip(ship.symbol);
+	} catch {}
 	const response = await api.send<Ship>({endpoint: `/my/ships/${ship.symbol}`});
 	if (response.error) {
 		api.debugLog(response);

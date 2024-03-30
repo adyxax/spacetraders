@@ -29,8 +29,11 @@ export async function init(): Promise<void> {
 	if (json.error !== undefined) {
 		switch(json.error?.code) {
 			case 4111:  // 4111 means the agent symbol has already been claimed so no server reset happened
-				await libContracts.contracts();
-				await libShips.ships();
+				// TODO await agents.agents();
+				const contracts = await libContracts.getContracts();
+				const ongoing = contracts.filter(c => !c.fulfilled);
+				const ships = await libShips.getShips();
+				if (ongoing.length === 0) libShips.negotiate(ships[0]);
 				return;
 			default:
 				throw json;
@@ -42,5 +45,5 @@ export async function init(): Promise<void> {
 	dbContracts.setContract(json.data.contract);
 	dbShips.setShip(json.data.ship);
 	// Temporary fix to fetch the data on the startup probe
-	await libShips.ships();
+	await libShips.getShips();
 }

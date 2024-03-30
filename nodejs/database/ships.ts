@@ -23,14 +23,11 @@ export function getShipsAt(symbol: string): Array<Ship> {
 
 
 export function setShip(data: Ship): void {
-	if (getShip(data.symbol) === null) {
-		addShipStatement.run(JSON.stringify(data));
-	} else {
-		updateShipStatement.run({
-			data: JSON.stringify(data),
-			symbol: data.symbol,
-		});
-	}
+	const changes = updateShipStatement.run({
+		data: JSON.stringify(data),
+		symbol: data.symbol,
+	}).changes;
+	if (changes === 0) addShipStatement.run(JSON.stringify(data));
 }
 
 export function setShipCargo(symbol: string, cargo: Cargo): void {

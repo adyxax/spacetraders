@@ -8,7 +8,7 @@ const getMarketAtWaypointStatement = db.prepare(`SELECT data FROM markets WHERE 
 const updateMarketStatement = db.prepare(`UPDATE markets SET data = json(:data) WHERE data->>'symbol' = :symbol;`);
 
 export function getMarketAtWaypoint(symbol: string): Market|null {
-    const data = getMarketAtWaypointStatement.get(symbol) as DbData;
+    const data = getMarketAtWaypointStatement.get(symbol) as DbData|undefined;
 	if (!data) return null;
     return JSON.parse(data.data);
 }
