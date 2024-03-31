@@ -9,6 +9,20 @@ import * as dbShips from '../database/ships.ts';
 //import * as dbSurveys from '../database/surveys.ts';
 import * as systems from '../lib/systems.ts';
 
+export async function buy(ship: Ship, tradeSymbol: string, units: number): Promise<void> {
+	if (units <= 0) return;
+	ship = await getShip(ship);
+	await dock(ship);
+	// TODO take into account the tradevolume, we might need to buy in multiple steps
+	const response = await api.send<{agent: Agent, cargo: Cargo}>({endpoint: `/my/ships/${ship.symbol}/purchase`, method: 'POST', payload: { symbol: tradeSymbol, units: units }}); // TODO transaction field
+	if (response.error) {
+		api.debugLog(response);
+		throw response;
+	}
+	dbShips.setShipCargo(ship.symbol, response.data.cargo);
+	dbAgents.setAgent(response.data.agent);
+}
+
 export async function dock(ship: Ship): Promise<void> {
 	ship = await getShip(ship);
 	if (ship.nav.status === 'DOCKED') return;

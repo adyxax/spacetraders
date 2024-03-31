@@ -6,5 +6,5 @@ import * as autoInit from './automation/init.ts';
 
 await autoInit.init();
 
-autoContracting.init();
+await autoContracting.init();
 //autoExploring.init();

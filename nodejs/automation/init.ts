@@ -8,6 +8,7 @@ import { Response } from '../model/api.ts';
 import { Contract } from '../model/contract.ts';
 import { Ship } from '../model/ship.ts';
 import * as api from '../lib/api.ts';
+//import * as agents from '../lib/angent.ts';
 import * as libContracts from '../lib/contracts.ts';
 import * as libShips from '../lib/ships.ts';
 
@@ -30,10 +31,8 @@ export async function init(): Promise<void> {
 		switch(json.error?.code) {
 			case 4111:  // 4111 means the agent symbol has already been claimed so no server reset happened
 				// TODO await agents.agents();
-				const contracts = await libContracts.getContracts();
-				const ongoing = contracts.filter(c => !c.fulfilled);
-				const ships = await libShips.getShips();
-				if (ongoing.length === 0) libShips.negotiate(ships[0]);
+				await libContracts.getContracts();
+				await libShips.getShips();
 				return;
 			default:
 				throw json;
