@@ -94,11 +94,11 @@ async function runTradeProcurement(contract: Contract, ship: Ship): Promise<void
 			return 0;
 		});
 		// check from the closest one that exports what we need
-		let buyingPoint: string = null;
+		let buyingPoint: string = "";
 		outer: for (let i = 0; i < markets.length; i++) {
 			const waypointSymbol = markets[i].data.symbol;
 			const market = await libSystems.market(waypointSymbol);
-			for (let j = 0; j < market.exports; j++) {
+			for (let j = 0; j < market.exports.length; j++) {
 				if (market.exports[j].symbol === wantedCargo) {
 					buyingPoint = market.symbol;
 					break outer;
@@ -106,11 +106,11 @@ async function runTradeProcurement(contract: Contract, ship: Ship): Promise<void
 			}
 		}
 		// if we did not find an exporting market we look for an exchange
-		if (buyingPoint === null) {
+		if (buyingPoint === "") {
 			outer: for (let i = 0; i < markets.length; i++) {
 				const waypointSymbol = markets[i].data.symbol;
 				const market = await libSystems.market(waypointSymbol);
-				for (let j = 0; j < market.exchanges; j++) {
+				for (let j = 0; j < market.exchange.length; j++) {
 					if (market.exports[j].symbol === wantedCargo) {
 						buyingPoint = market.symbol;
 						break outer;
@@ -118,7 +118,7 @@ async function runTradeProcurement(contract: Contract, ship: Ship): Promise<void
 				}
 			}
 		}
-		if (buyingPoint === null) {
+		if (buyingPoint === "") {
 			throw `runTradeProcurement failed, no market exports or exchanges ${wantedCargo}`;
 		}
 		// go buy what we need
