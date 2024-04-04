@@ -1,5 +1,5 @@
 import { DbData, db } from './db.ts';
-import { System, Waypoint } from '../model/system.ts';
+import { System, Waypoint } from '../lib/types.ts';
 
 const addSystemStatement = db.prepare(`INSERT INTO systems(data) VALUES (json(?));`);
 const getSystemStatement = db.prepare(`SELECT data FROM systems WHERE data->>'symbol' = ?;`);

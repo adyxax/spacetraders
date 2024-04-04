@@ -1,10 +1,10 @@
 import * as autoContracting from './automation/contracting.ts';
 //import * as autoExploring from './automation/exploration.ts';
 import * as autoInit from './automation/init.ts';
-//import * as api from './lib/api.ts';
-//import * as contracts from './lib/contracts.ts';
+import { getShips } from './lib/ships.ts';
 
 await autoInit.init();
+const ships = await getShips();
 
-await autoContracting.init();
+await autoContracting.run(ships[0]); // dedicate the command ship to running contracts
 //autoExploring.init();

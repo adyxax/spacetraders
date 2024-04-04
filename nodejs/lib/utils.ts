@@ -1,4 +1,4 @@
-import { Cargo, CargoManifest } from '../model/cargo.ts';
+import { Cargo, CargoManifest } from './types.ts';
 
 export type CategorizedCargo = {
 	wanted: CargoManifest;

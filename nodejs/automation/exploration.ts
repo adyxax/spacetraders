@@ -1,6 +1,6 @@
 import db from '../database/db.ts';
 import * as dbSystems from '../database/systems.ts';
-import { System } from '../model/system.ts';
+import { System } from '../lib/types.ts';
 import * as api from '../lib/api.ts';
 
 export async function init(): Promise<void> {

@@ -1,5 +1,5 @@
 import { DbData, db } from './db.ts';
-import { Market } from '../model/market.ts';
+import { Market } from '../lib/types.ts';
 import { systemFromWaypoint } from '../lib/utils.ts';
 
 const addMarketStatement = db.prepare(`INSERT INTO markets(system, data) VALUES (?, json(?));`);

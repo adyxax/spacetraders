@@ -1,4 +1,4 @@
-import { Agent } from '../model/agent.ts';
+import { Agent } from '../lib/types.ts';
 import { DbData, db } from './db.ts';
 
 const addAgentStatement = db.prepare(`INSERT INTO agents(data) VALUES (json(?));`);

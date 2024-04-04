@@ -1,18 +1,24 @@
-import * as api from './api.ts';
+import {
+	debugLog,
+	send,
+	sendPaginated,
+} from './api.ts';
 import * as dbMarkets from '../database/markets.ts';
-import * as dbShips from '../database/ships.ts';
 import * as dbSystems from '../database/systems.ts';
-import { Market } from '../model/market.ts'
-import { System, Waypoint } from '../model/system.ts'
-import * as utils from './utils.ts';
+import {
+	Market,
+	System,
+	Waypoint
+} from './types.ts'
+import { systemFromWaypoint } from './utils.ts';
 
 export async function market(waypointSymbol: string): Promise<Market> {
     const data = dbMarkets.getMarketAtWaypoint(waypointSymbol);
 	if (data) { return data; }
-	const systemSymbol = utils.systemFromWaypoint(waypointSymbol);
-	let response = await api.send<Market>({endpoint: `/systems/${systemSymbol}/waypoints/${waypointSymbol}/market`});
+	const systemSymbol = systemFromWaypoint(waypointSymbol);
+	let response = await send<Market>({endpoint: `/systems/${systemSymbol}/waypoints/${waypointSymbol}/market`});
 	if (response.error) {
-		api.debugLog(response);
+		debugLog(response);
 		throw response;
 	}
 	dbMarkets.setMarket(response.data);
@@ -21,16 +27,16 @@ export async function market(waypointSymbol: string): Promise<Market> {
 
 //export async function shipyard(waypoint: string): Promise<unknown> {
 //	// TODO database caching
-//	const systemSymbol = utils.systemFromWaypoint(waypoint);
-//	return await api.send({endpoint: `/systems/${systemSymbol}/waypoints/${waypoint}/shipyard`});
+//	const systemSymbol = systemFromWaypoint(waypoint);
+//	return await send({endpoint: `/systems/${systemSymbol}/waypoints/${waypoint}/shipyard`});
 //}
 
 export async function system(symbol: string): Promise<System> {
 	let data = dbSystems.getSystem(symbol);
 	if (data) { return data; }
-	const response = await api.send<System>({endpoint: `/systems/${symbol}`});
+	const response = await send<System>({endpoint: `/systems/${symbol}`});
 	if (response.error) {
-		api.debugLog(response);
+		debugLog(response);
 		throw response;
 	}
 	dbSystems.setSystem(response.data);
@@ -54,7 +60,7 @@ export async function waypoints(systemSymbol: string): Promise<Array<Waypoint>> 
 	const updated = dbSystems.getSystemUpdated(systemSymbol);
 	// TODO handle uncharted systems
 	if (updated) return s.waypoints;
-	const waypoints = await api.sendPaginated<Waypoint>({endpoint: `/systems/${systemSymbol}/waypoints`});
+	const waypoints = await sendPaginated<Waypoint>({endpoint: `/systems/${systemSymbol}/waypoints`});
 	dbSystems.setSystemWaypoints(systemSymbol, waypoints);
 	return waypoints;
 }

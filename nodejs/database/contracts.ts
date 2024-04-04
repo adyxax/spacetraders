@@ -1,4 +1,4 @@
-import { Contract } from '../model/contract.ts';
+import { Contract } from '../lib/types.ts';
 import { DbData, db } from './db.ts';
 
 const addContractStatement = db.prepare(`INSERT INTO contracts(data) VALUES (json(?));`);

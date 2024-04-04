@@ -1,29 +1,26 @@
 import * as dbMarkets from '../database/markets.ts';
-import * as dbShips from '../database/ships.ts';
-import * as api from '../lib/api.ts';
-import * as libShips from '../lib/ships.ts';
 import * as libSystems from '../lib/systems.ts';
-import * as utils from '../lib/utils.ts';
-import { CargoManifest } from '../model/cargo.ts';
-import { CommonThing } from '../model/common.ts';
-import { Ship } from '../model/ship.ts';
+import { categorizeCargo } from '../lib/utils.ts';
+import { Ship } from '../lib/ships.ts';
+import {
+	CargoManifest,
+	CommonThing,
+} from '../lib/types.ts';
 
 // example ctx { ship: {XXX}, keep: 'SILVER_ORE' }
 export async function sell(ship: Ship, good: string): Promise<Ship> {
     outer: while(true) {
-		ship = dbShips.getShip(ship.symbol);
 		// first lets see what we want to sell
-		let cargo = utils.categorizeCargo(ship.cargo, good);
+		let cargo = categorizeCargo(ship.cargo, good);
 		// get the marketdata from our location
 		const market = await libSystems.market(ship.nav.waypointSymbol);
 		// can we sell anything here?
 		const goods = whatCanBeTradedAt(cargo.goods, market.imports.concat(market.exchange));
 		for (let i = 0; i < goods.length; i++) {
-			await libShips.sell(ship, goods[i].symbol);
+			await ship.sell(goods[i].symbol);
 		};
 		// are we done selling everything we can?
-		ship = dbShips.getShip(ship.symbol);
-		cargo = utils.categorizeCargo(ship.cargo, good);
+		cargo = categorizeCargo(ship.cargo, good);
 		if (Object.keys(cargo.goods).length === 0) {
 			return ship;
 		}
@@ -50,7 +47,7 @@ export async function sell(ship: Ship, good: string): Promise<Ship> {
 			// if we have no data on the market we need to go there and see
 			// and if we have data and can sell there we need to go too
 			if (market === null || whatCanBeTradedAt(cargo.goods, market.imports).length > 0) {
-				await libShips.navigate(ship, waypointSymbol);
+				await ship.navigate(waypointSymbol);
 				continue outer;
 			}
 		}
@@ -60,7 +57,7 @@ export async function sell(ship: Ship, good: string): Promise<Ship> {
 			const market = await libSystems.market(waypointSymbol);
 			// if we can sell there we need to go
 			if (whatCanBeTradedAt(cargo.goods, market.exchange).length > 0) {
-				await libShips.navigate(ship, waypointSymbol);
+				await ship.navigate(waypointSymbol);
 				continue outer;
 			}
 		}

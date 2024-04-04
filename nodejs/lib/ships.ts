@@ -1,240 +1,207 @@
-import { Response } from '../model/api.ts';
-import { Agent } from '../model/agent.ts';
-import { Cargo } from '../model/cargo.ts';
-import { Contract } from '../model/contract.ts';
-import { Cooldown, Fuel, Nav, Ship } from '../model/ship.ts';
-import * as api from './api.ts';
+import {
+	Response,
+	debugLog,
+	send,
+	sleep,
+} from './api.ts';
+import {
+	MarketTradeVolumeError,
+	ShipIsCurrentlyInTransitError,
+	ShipIsStillOnCooldownError,
+	ShipRequiresMoreFuelForNavigationError,
+} from './errors.ts';
+import {
+	Agent,
+	Cargo,
+	Contract,
+	Cooldown,
+	Fuel,
+	Nav,
+	Registration,
+} from './types.ts';
 import * as dbAgents from '../database/agents.ts';
-import * as dbShips from '../database/ships.ts';
-//import * as dbSurveys from '../database/surveys.ts';
-import * as systems from '../lib/systems.ts';
-
-export async function buy(ship: Ship, tradeSymbol: string, units: number): Promise<void> {
-	if (units <= 0) return;
-	ship = await getShip(ship);
-	await dock(ship);
-	// TODO take into account the tradevolume, we might need to buy in multiple steps
-	const response = await api.send<{agent: Agent, cargo: Cargo}>({endpoint: `/my/ships/${ship.symbol}/purchase`, method: 'POST', payload: { symbol: tradeSymbol, units: units }}); // TODO transaction field
-	if (response.error) {
-		api.debugLog(response);
-		throw response;
-	}
-	dbShips.setShipCargo(ship.symbol, response.data.cargo);
-	dbAgents.setAgent(response.data.agent);
-}
-
-export async function dock(ship: Ship): Promise<void> {
-	ship = await getShip(ship);
-	if (ship.nav.status === 'DOCKED') return;
-	const response = await api.send<{nav: Nav}>({endpoint: `/my/ships/${ship.symbol}/dock`, method: 'POST'});
-	if (response.error) {
-		switch(response.error.code) {
-			case 4214: // ship is in transit
-				const errorData = response.error.data as { secondsToArrival: number};
-				await api.sleep(errorData.secondsToArrival * 1000);
-				return await dock(ship);
-			default: // yet unhandled error
-				api.debugLog(response);
-				throw response;
-		}
-	}
-	dbShips.setShipNav(ship.symbol, response.data.nav);
-}
-
-export async function extract(ship: Ship): Promise<Cargo> {
-	ship = await getShip(ship);
-	if (await isFull(ship)) return ship.cargo;
-	// TODO move to a suitable asteroid?
-	// const asteroidFields = await systems.type({symbol: ship.nav.systemSymbol, type: 'ENGINEERED_ASTEROID'});
-	// TODO if there are multiple fields, find the closest one?
-	//await navigate({symbol: ctx.symbol, waypoint: asteroidFields[0].symbol});
-	await orbit(ship);
-	// TODO handle surveying?
-	const response = await api.send<{cooldown: Cooldown, cargo: Cargo}>({endpoint: `/my/ships/${ship.symbol}/extract`, method: 'POST'}); // TODO extraction and events api response fields cf https://spacetraders.stoplight.io/docs/spacetraders/b3931d097608d-extract-resources
-	if (response.error) {
-		switch(response.error.code) {
-			case 4000: // ship is on cooldown
-				const errorData = response.error.data as {cooldown: Cooldown};
-				await api.sleep(errorData.cooldown.remainingSeconds  * 1000);
-				return await extract(ship);
-			case 4228: // ship is full
-				return ship.cargo;
-			default: // yet unhandled error
-				api.debugLog(response);
-				throw response;
-		}
-	} else {
-		dbShips.setShipCargo(ship.symbol, response.data.cargo);
-		await api.sleep(response.data.cooldown.remainingSeconds*1000);
-	}
-	return response.data.cargo
-}
-
-export async function isFull(ship: Ship): Promise<boolean> {
-	ship = await getShip(ship);
-	return ship.cargo.units >= ship.cargo.capacity * 0.9;
-}
-
-//function hasMount(shipSymbol, mountSymbol) {
-//	const ship = dbShips.getShip(shipSymbol);
-//	return ship.mounts.filter(s => s.symbol === mountSymbol).length > 0;
-//}
-
-//export async function jump(ship: Ship): Ship {
-//	// TODO
-//	const response = await api.send({endpoint: `/my/ships/${ctx.ship}/jump`, method: 'POST', payload: { systemSymbol: ctx.system }});
-//	await api.sleep(response.data.cooldown.remainingSeconds*1000);
-//	return response;
-//}
-
-export async function navigate(ship: Ship, waypoint: string): Promise<void> {
-	ship = await getShip(ship);
-	if (ship.nav.waypointSymbol === waypoint) return;
-	await orbit(ship);
-	// TODO if we do not have enough fuel, make a stop to refuel along the way or drift to the destination
-	const response = await api.send<{fuel: Fuel, nav: Nav}>({endpoint: `/my/ships/${ship.symbol}/navigate`, method: 'POST', payload: { waypointSymbol: waypoint }}); // TODO events field
-	if (response.error) {
-		switch(response.error.code) {
-			case 4214: // ship is in transit
-				const errorData = response.error.data as { secondsToArrival: number};
-				await api.sleep(errorData.secondsToArrival * 1000);
-				return await navigate(ship, waypoint);
-			default: // yet unhandled error
-				api.debugLog(response);
-				throw response;
-		}
-	}
-	dbShips.setShipFuel(ship.symbol, response.data.fuel);
-	dbShips.setShipNav(ship.symbol, response.data.nav);
-	const delay = new Date(response.data.nav.route.arrival).getTime()  - new Date().getTime() ;
-	await api.sleep(delay);
-	response.data.nav.status = 'IN_ORBIT'; // we arrive in orbit
-	dbShips.setShipNav(ship.symbol, response.data.nav);
-	// TODO only refuel at the start of a journey, if we do not have enough OR if the destination does not sell fuel?
-	await refuel(ship);
-}
-
-export async function negotiate(ship: Ship): Promise<Contract> {
-	ship = await getShip(ship);
-	const response = await api.send<{contract: Contract}>({endpoint: `/my/ships/${ship.symbol}/negotiate/contract`, method: 'POST'});
-	if (response.error) {
-		switch(response.error.code) {
-			case 4214: // ship is in transit
-				const errorData = response.error.data as { secondsToArrival: number};
-				await api.sleep(errorData.secondsToArrival * 1000);
-				return await negotiate(ship);
-			default: // yet unhandled error
-				api.debugLog(response);
-				throw response;
-		}
-	}
-	return response.data.contract;
-}
-
-export async function orbit(ship: Ship): Promise<void> {
-	ship = await getShip(ship);
-	if (ship.nav.status === 'IN_ORBIT') return;
-	const response = await api.send<{nav: Nav}>({endpoint: `/my/ships/${ship.symbol}/orbit`, method: 'POST'});
-	if (response.error) {
-		switch(response.error.code) {
-			case 4214: // ship is in transit
-				const errorData = response.error.data as { secondsToArrival: number};
-				await api.sleep(errorData.secondsToArrival * 1000);
-				return await orbit(ship);
-			default: // yet unhandled error
-				api.debugLog(response);
-				throw response;
-		}
-	}
-	dbShips.setShipNav(ship.symbol, response.data.nav);
-}
-
-//export async function purchase(ctx) {
-//	const response = await api.send({endpoint: '/my/ships', method: 'POST', payload: {
-//		shipType: ctx.shipType,
-//		waypointSymbol: ctx.waypoint,
-//	}});
-//	if (response.error !== undefined) {
-//		throw response;
-//	}
-//	dbShips.setShip(response.data.ship);
-//	return response.data;
-//}
-
-export async function refuel(ship: Ship): Promise<void> {
-	ship = await getShip(ship);
-	if (ship.fuel.current >= ship.fuel.capacity * 0.9) return;
-	// TODO check if our current waypoint has a marketplace (and sells fuel)?
-	await dock(ship);
-	const response = await api.send<{agent: Agent, fuel: Fuel}>({endpoint: `/my/ships/${ship.symbol}/refuel`, method: 'POST'}); // TODO transaction field
-	if (response.error) {
-		api.debugLog(response);
-		throw response;
-	}
-	dbShips.setShipFuel(ship.symbol, response.data.fuel);
-	dbAgents.setAgent(response.data.agent);
-}
-
-export async function sell(ship: Ship, tradeSymbol: string): Promise<Cargo> {
-	ship = await getShip(ship);
-	// TODO check if our current waypoint has a marketplace and buys tradeSymbol?
-	await dock(ship);
-	let units = 0;
-	ship.cargo.inventory.forEach(i => {if (i.symbol === tradeSymbol) units = i.units; });
-	const response = await api.send<{agent: Agent, cargo: Cargo}>({endpoint: `/my/ships/${ship.symbol}/sell`, method: 'POST', payload: { symbol: tradeSymbol, units: units }}); // TODO transaction field
-	if (response.error) {
-		api.debugLog(response);
-		throw response;
-	}
-	dbShips.setShipCargo(ship.symbol, response.data.cargo);
-	dbAgents.setAgent(response.data.agent);
-	return response.data.cargo;
-}
 
 export async function getShips(): Promise<Array<Ship>> {
-	const response = await api.send<Array<Ship>>({endpoint: `/my/ships`, page: 1});
+	const response = await send<Array<Ship>>({endpoint: `/my/ships`, page: 1});
 	if (response.error) {
-		api.debugLog(response);
+		debugLog(response);
 		throw response;
 	}
-	response.data.forEach(ship => dbShips.setShip(ship));
-	return response.data;
+	return response.data.map(ship => new Ship(ship));
 }
 
-export async function getShip(ship: Ship): Promise<Ship> {
-	try {
-		return dbShips.getShip(ship.symbol);
-	} catch {}
-	const response = await api.send<Ship>({endpoint: `/my/ships/${ship.symbol}`});
-	if (response.error) {
-		api.debugLog(response);
-		throw response;
+export class Ship {
+	cargo: Cargo;
+	cooldown: Cooldown;
+	// crew
+	// engine
+	// frame
+	fuel: Fuel;
+	// modules
+	// mounts
+	nav: Nav;
+	// reactor
+	registration: Registration;
+	symbol: string;
+	constructor(ship: Ship) {
+		this.cargo = ship.cargo;
+		this.cooldown = ship.cooldown;
+		this.fuel = ship.fuel;
+		this.nav = ship.nav;
+		this.registration = ship.registration;
+		this.symbol = ship.symbol;
 	}
-	dbShips.setShip(response.data);
-	return response.data;
+	async dock(): Promise<void> {
+		if (this.nav.status === 'DOCKED') return;
+		const response = await send<{nav: Nav}>({endpoint: `/my/ships/${this.symbol}/dock`, method: 'POST'});
+		if (response.error) {
+			switch(response.error.code) {
+				case 4214:
+					const sicite = response.error.data as ShipIsCurrentlyInTransitError;
+					await sleep(sicite.secondsToArrival * 1000);
+					return await this.dock();
+				default: // yet unhandled error
+					debugLog(response);
+					throw response;
+			}
+		}
+		this.nav = response.data.nav;
+	}
+	async extract(): Promise<Cargo> {
+		if (this.isFull()) return this.cargo;
+		// TODO move to a suitable asteroid?
+		// const asteroidFields = await systems.type({symbol: this.nav.systemSymbol, type: 'ENGINEERED_ASTEROID'});
+		// TODO if there are multiple fields, find the closest one?
+		//await navigate({symbol: ctx.symbol, waypoint: asteroidFields[0].symbol});
+		await this.orbit();
+		// TODO handle surveying?
+		const response = await send<{cooldown: Cooldown, cargo: Cargo}>({endpoint: `/my/ships/${this.symbol}/extract`, method: 'POST'}); // TODO extraction and events api response fields cf https://spacetraders.stoplight.io/docs/spacetraders/b3931d097608d-extract-resources
+		if (response.error) {
+			switch(response.error.code) {
+				case 4000:
+					const sisoce = response.error.data as ShipIsStillOnCooldownError;
+					await sleep(sisoce.cooldown.remainingSeconds  * 1000);
+					return await this.extract();
+				case 4228: // ship is full
+					return this.cargo;
+				default: // yet unhandled error
+					debugLog(response);
+					throw response;
+			}
+		}
+		this.cargo = response.data.cargo;
+		await sleep(response.data.cooldown.remainingSeconds*1000);
+		return this.cargo;
+	}
+	isFull(): boolean {
+		return this.cargo.units >= this.cargo.capacity * 0.9;
+	}
+	async navigate(waypointSymbol: string): Promise<void> {
+		if (this.nav.waypointSymbol === waypointSymbol) return;
+		const d =
+		// TODO compute fuel consumption and refuel if we do not have enough OR if the destination does not sell fuel?
+		await this.refuel();
+		await this.orbit();
+		// TODO if we do not have enough fuel, make a stop to refuel along the way or drift to the destination
+		const response = await send<{fuel: Fuel, nav: Nav}>({endpoint: `/my/ships/${this.symbol}/navigate`, method: 'POST', payload: { waypointSymbol: waypointSymbol }}); // TODO events field
+		if (response.error) {
+			switch(response.error.code) {
+				case 4203: // not enough fuel
+					const srmffne = response.error.data as ShipRequiresMoreFuelForNavigationError;
+					// TODO test if it exceeds our maximum
+					// find an intermediate stop to refuel if that is the case
+					debugLog(response);
+					throw response;
+					//await refuel(ship);
+					//return await navigate(ship, waypoint);
+				case 4214:
+					const sicite = response.error.data as ShipIsCurrentlyInTransitError;
+					await sleep(sicite.secondsToArrival * 1000);
+					return await this.navigate(waypointSymbol);
+				default: // yet unhandled error
+					debugLog(response);
+					throw response;
+			}
+		}
+		this.fuel = response.data.fuel;
+		this.nav = response.data.nav;
+		const delay = new Date(this.nav.route.arrival).getTime()  - new Date().getTime() ;
+		await sleep(delay);
+		this.nav.status = 'IN_ORBIT'; // we arrive in orbit
+	}
+	async negotiate(): Promise<Contract> {
+		const response = await send<{contract: Contract}>({endpoint: `/my/ships/${this.symbol}/negotiate/contract`, method: 'POST'});
+		if (response.error) {
+			switch(response.error.code) {
+				case 4214:
+					const sicite = response.error.data as ShipIsCurrentlyInTransitError;
+					await sleep(sicite.secondsToArrival * 1000);
+					return await this.negotiate();
+				default: // yet unhandled error
+					debugLog(response);
+					throw response;
+			}
+		}
+		return response.data.contract;
+	}
+	async orbit(): Promise<void> {
+		if (this.nav.status === 'IN_ORBIT') return;
+		const response = await send<{nav: Nav}>({endpoint: `/my/ships/${this.symbol}/orbit`, method: 'POST'});
+		if (response.error) {
+			switch(response.error.code) {
+				case 4214:
+					const sicite = response.error.data as ShipIsCurrentlyInTransitError;
+					await sleep(sicite.secondsToArrival * 1000);
+					return await this.orbit();
+				default: // yet unhandled error
+					debugLog(response);
+					throw response;
+			}
+		}
+		this.nav = response.data.nav;
+	}
+	async purchase(tradeSymbol: string, units: number): Promise<void> {
+		if (units <= 0) return;
+		await this.dock();
+		// TODO take into account the tradevolume, we might need to buy in multiple steps
+		const response = await send<{agent: Agent, cargo: Cargo}>({endpoint: `/my/ships/${this.symbol}/purchase`, method: 'POST', payload: { symbol: tradeSymbol, units: units }}); // TODO transaction field
+		if (response.error) {
+			switch(response.error.code) {
+				case 4604: // units per transaction limit exceeded
+					const mtve = response.error.data as MarketTradeVolumeError;
+					await this.purchase(tradeSymbol, mtve.tradeVolume);
+					return await this.purchase(tradeSymbol, units - mtve.tradeVolume);
+				default:
+					debugLog(response);
+					throw response;
+			}
+		}
+		this.cargo = response.data.cargo;
+		dbAgents.setAgent(response.data.agent);
+	}
+	async refuel(): Promise<void> {
+		// TODO check if our current waypoint has a marketplace (and sells fuel)?
+		await this.dock();
+		const response = await send<{agent: Agent, fuel: Fuel}>({endpoint: `/my/ships/${this.symbol}/refuel`, method: 'POST'}); // TODO transaction field
+		if (response.error) {
+			debugLog(response);
+			throw response;
+		}
+		this.fuel = response.data.fuel;
+		dbAgents.setAgent(response.data.agent);
+	}
+	async sell(tradeSymbol: string): Promise<Cargo> {
+		// TODO check if our current waypoint has a marketplace and buys tradeSymbol?
+		await this.dock();
+		let units = 0;
+		this.cargo.inventory.forEach(i => {if (i.symbol === tradeSymbol) units = i.units; });
+		const response = await send<{agent: Agent, cargo: Cargo}>({endpoint: `/my/ships/${this.symbol}/sell`, method: 'POST', payload: { symbol: tradeSymbol, units: units }}); // TODO transaction field
+		if (response.error) {
+			debugLog(response);
+			throw response;
+		}
+		this.cargo = response.data.cargo;
+		dbAgents.setAgent(response.data.agent);
+		return this.cargo;
+	}
 }
-
-//export async function survey(ctx) {
-//	if (!hasMount(ctx.symbol, 'MOUNT_SURVEYOR_I')) { // we check if a surveyor is mounted on the ship
-//		return null;
-//	}
-//	const ship = dbShips.getShip(ctx.symbol);
-//	const asteroidFields = await systems.type({symbol: ship.nav.systemSymbol, type: 'ASTEROID_FIELD'});
-//	// TODO if there are multiple fields, find the closest one?
-//	await navigate({symbol: ctx.symbol, waypoint: asteroidFields[0].symbol});
-//	await orbit(ctx);
-//	const response = await api.send({endpoint: `/my/ships/${ctx.symbol}/survey`, method: 'POST'});
-//	api.debugLog(response);
-//	if (response.error !== undefined) {
-//		switch(response.error.code) {
-//			case 4000: // ship is on cooldown
-//				await api.sleep(response.error.data.cooldown.remainingSeconds  * 1000);
-//				return await survey(ctx);
-//			default: // yet unhandled error
-//				throw response;
-//		}
-//	}
-//	dbSurveys.set(response.data.surveys[0]);
-//	await api.sleep(response.data.cooldown.remainingSeconds*1000);
-//	return response;
-//}
