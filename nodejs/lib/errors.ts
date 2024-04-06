@@ -1,5 +1,10 @@
 import { Cooldown } from './types.ts';
 
+export type ContractDeadlineExpired = {
+	contractId: string;
+	deadline: Date;
+};
+
 export type MarketTradeVolumeError = {
 	waypointSymbol: string;
 	tradeSymbol: string;

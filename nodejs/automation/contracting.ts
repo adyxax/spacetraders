@@ -1,29 +1,35 @@
-import { Contract } from '../lib/types.ts';
+import { debugLog } from '../lib/api.ts';
 import { Ship } from '../lib/ships.ts';
+import { Contract } from '../lib/types.ts';
 import * as mining from './mining.js';
 import * as selling from './selling.js';
 import * as dbContracts from '../database/contracts.ts';
-import * as contracts from '../lib/contracts.ts';
+import * as libContracts from '../lib/contracts.ts';
 import * as libSystems from '../lib/systems.ts';
 import * as systems from '../lib/systems.ts';
-import * as utils from '../lib/utils.ts';
+import {
+	sortByDistanceFrom,
+} from '../lib/utils.ts';
 
 export async function run(ship: Ship): Promise<void> {
-	while(true) { // we use the fact that there can only be at most one active contract at a time
-		const contracts = dbContracts.getContracts().filter(c => !c.fulfilled);
-		let contract: Contract;
-		if (contracts.length === 0) {
-			contract = await ship.negotiate();
-		} else {
-			contract = contracts[0];
-		}
+	const contracts = await libContracts.getContracts();
+	const active = contracts.filter(function(c) {
+		if (c.fulfilled) return false;
+		const deadline = new Date(c.terms.deadline).getTime();
+		const now = new Date().getTime();
+		return deadline > now;
+	});
+	for (const contract of active) {
 		await runOne(contract, ship);
-		await ship.negotiate();
+	}
+	while(true) {
+		await runOne(await ship.negotiate(), ship);
 	}
 }
 
 async function runOne(contract: Contract, ship: Ship): Promise<void> {
-	await contracts.accept(contract);
+	debugLog(contract);
+	await libContracts.accept(contract);
 	switch(contract.type) {
 		case 'PROCUREMENT':
 			if (contract.terms.deliver[0].tradeSymbol.match(/_ORE$/)) {
@@ -52,7 +58,7 @@ async function runOreProcurement(contract: Contract, ship: Ship): Promise<void> 
 				break;
 			case deliveryPoint.symbol:
 				if (goodCargo !== undefined) { // we could be here if a client restart happens right after selling before we navigate away
-					contract = await contracts.deliver(contract, ship);
+					contract = await libContracts.deliver(contract, ship);
 					if (contract.fulfilled) return;
 				}
 				await ship.navigate(asteroid);
@@ -73,20 +79,7 @@ async function runTradeProcurement(contract: Contract, ship: Ship): Promise<void
 		// make sure we are not carrying useless stuff
 		await selling.sell(ship, wantedCargo);
 		// go buy what we need
-		const rawMarkets = await libSystems.trait(ship.nav.systemSymbol, 'MARKETPLACE');
-		// sorted by distance from where we are
-		const markets = rawMarkets.map(function (m) { return {
-			data: m,
-			distance: (m.x - ship.nav.route.destination.x) ** 2 + (m.y - ship.nav.route.destination.y) ** 2,
-		}});
-		markets.sort(function(a, b) {
-			if (a.distance < b.distance) {
-				return -1;
-			} else if (a.distance > b.distance) {
-				return 1;
-			}
-			return 0;
-		});
+		const markets = sortByDistanceFrom(ship.nav.route.destination, await libSystems.trait(ship.nav.systemSymbol, 'MARKETPLACE'));
 		// check from the closest one that exports what we need
 		let buyingPoint: string = "";
 		outer: for (let i = 0; i < markets.length; i++) {
@@ -105,7 +98,7 @@ async function runTradeProcurement(contract: Contract, ship: Ship): Promise<void
 				const waypoint = await libSystems.waypoint(markets[i].data.symbol);
 				const market = await libSystems.market(waypoint);
 				for (let j = 0; j < market.exchange.length; j++) {
-					if (market.exports[j].symbol === wantedCargo) {
+					if (market.exchange[j].symbol === wantedCargo) {
 						buyingPoint = market.symbol;
 						break outer;
 					}
@@ -124,7 +117,7 @@ async function runTradeProcurement(contract: Contract, ship: Ship): Promise<void
 		await ship.purchase(wantedCargo, units);
 		// then make a delivery
 		await ship.navigate(deliveryPoint);
-		contract = await contracts.deliver(contract, ship);
+		contract = await libContracts.deliver(contract, ship);
 		if (contract.fulfilled) return;
 	}
 	console.log("runTradeProcurement not implemented");

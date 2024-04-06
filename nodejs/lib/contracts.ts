@@ -61,6 +61,10 @@ export async function deliver(contract: Contract, ship: Ship): Promise<Contract>
 	}});
 	if (response.error) {
 		switch(response.error.code) {
+			case 4503: // contract has expired
+				// TODO sell cargo? the next trading loop should take care of it by itself
+				contract.fulfilled = true;
+				return contract;
 			case 4509: // contract delivery terms have been met
 				return await fulfill(contract);
 			default: // yet unhandled error

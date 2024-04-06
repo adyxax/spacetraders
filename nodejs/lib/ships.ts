@@ -130,6 +130,7 @@ export class Ship {
 		this.nav.status = 'IN_ORBIT'; // we arrive in orbit
 	}
 	async negotiate(): Promise<Contract> {
+		await this.dock();
 		const response = await send<{contract: Contract}>({endpoint: `/my/ships/${this.symbol}/negotiate/contract`, method: 'POST'});
 		if (response.error) {
 			switch(response.error.code) {
@@ -142,6 +143,7 @@ export class Ship {
 					throw response;
 			}
 		}
+		dbContracts.setContract(response.data.contract);
 		return response.data.contract;
 	}
 	async orbit(): Promise<void> {
@@ -180,6 +182,7 @@ export class Ship {
 		dbAgents.setAgent(response.data.agent);
 	}
 	async refuel(): Promise<void> {
+		if (this.fuel.current === this.fuel.capacity) return;
 		// TODO check if our current waypoint has a marketplace (and sells fuel)?
 		await this.dock();
 		const response = await send<{agent: Agent, fuel: Fuel}>({endpoint: `/my/ships/${this.symbol}/refuel`, method: 'POST'}); // TODO transaction field

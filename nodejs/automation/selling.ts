@@ -1,6 +1,9 @@
 import * as dbMarkets from '../database/markets.ts';
 import * as libSystems from '../lib/systems.ts';
-import { categorizeCargo } from '../lib/utils.ts';
+import {
+	categorizeCargo,
+	sortByDistanceFrom,
+} from '../lib/utils.ts';
 import { Ship } from '../lib/ships.ts';
 import {
 	CargoManifest,
@@ -26,21 +29,7 @@ export async function sell(ship: Ship, good: string): Promise<Ship> {
 			return ship;
 		}
 		// we need to move somewhere else to sell our remaining goods
-		// first we look into markets in our system
-		const rawMarkets = await libSystems.trait(ship.nav.systemSymbol, 'MARKETPLACE');
-		// sorted by distance from where we are
-		const markets = rawMarkets.map(function (m) { return {
-			data: m,
-			distance: (m.x - ship.nav.route.destination.x) ** 2 + (m.y - ship.nav.route.destination.y) ** 2,
-		}});
-		markets.sort(function(a, b) {
-			if (a.distance < b.distance) {
-				return -1;
-			} else if (a.distance > b.distance) {
-				return 1;
-			}
-			return 0;
-		});
+		const markets = sortByDistanceFrom(ship.nav.route.destination, await libSystems.trait(ship.nav.systemSymbol, 'MARKETPLACE'));
 		// check from the closest one if they import what we need to sell
 		for (let i = 0; i < markets.length; i++) {
 			const waypoint = await libSystems.waypoint(markets[i].data.symbol);
