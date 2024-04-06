@@ -10,10 +10,11 @@ import {
 // example ctx { ship: {XXX}, keep: 'SILVER_ORE' }
 export async function sell(ship: Ship, good: string): Promise<Ship> {
     outer: while(true) {
+		const waypoint = await libSystems.waypoint(ship.nav.waypointSymbol);
 		// first lets see what we want to sell
 		let cargo = categorizeCargo(ship.cargo, good);
 		// get the marketdata from our location
-		const market = await libSystems.market(ship.nav.waypointSymbol);
+		const market = await libSystems.market(waypoint);
 		// can we sell anything here?
 		const goods = whatCanBeTradedAt(cargo.goods, market.imports.concat(market.exchange));
 		for (let i = 0; i < goods.length; i++) {
@@ -42,22 +43,22 @@ export async function sell(ship: Ship, good: string): Promise<Ship> {
 		});
 		// check from the closest one if they import what we need to sell
 		for (let i = 0; i < markets.length; i++) {
-			const waypointSymbol = markets[i].data.symbol;
-			const market = await libSystems.market(waypointSymbol);
+			const waypoint = await libSystems.waypoint(markets[i].data.symbol);
+			const market = await libSystems.market(waypoint);
 			// if we have no data on the market we need to go there and see
 			// and if we have data and can sell there we need to go too
 			if (market === null || whatCanBeTradedAt(cargo.goods, market.imports).length > 0) {
-				await ship.navigate(waypointSymbol);
+				await ship.navigate(waypoint);
 				continue outer;
 			}
 		}
 		// check from the closest one if they exchange what we need to sell
 		for (let i = 0; i < markets.length; i++) {
-			const waypointSymbol = markets[i].data.symbol;
-			const market = await libSystems.market(waypointSymbol);
+			const waypoint = await libSystems.waypoint(markets[i].data.symbol);
+			const market = await libSystems.market(waypoint);
 			// if we can sell there we need to go
 			if (whatCanBeTradedAt(cargo.goods, market.exchange).length > 0) {
-				await ship.navigate(waypointSymbol);
+				await ship.navigate(waypoint);
 				continue outer;
 			}
 		}

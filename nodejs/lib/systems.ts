@@ -8,15 +8,15 @@ import * as dbSystems from '../database/systems.ts';
 import {
 	Market,
 	System,
-	Waypoint
+	Waypoint,
 } from './types.ts'
 import { systemFromWaypoint } from './utils.ts';
 
-export async function market(waypointSymbol: string): Promise<Market> {
-    const data = dbMarkets.getMarketAtWaypoint(waypointSymbol);
+export async function market(waypoint: Waypoint): Promise<Market> {
+    const data = dbMarkets.getMarketAtWaypoint(waypoint.symbol);
 	if (data) { return data; }
-	const systemSymbol = systemFromWaypoint(waypointSymbol);
-	let response = await send<Market>({endpoint: `/systems/${systemSymbol}/waypoints/${waypointSymbol}/market`});
+	const systemSymbol = systemFromWaypoint(waypoint.symbol);
+	let response = await send<Market>({endpoint: `/systems/${systemSymbol}/waypoints/${waypoint.symbol}/market`});
 	if (response.error) {
 		debugLog(response);
 		throw response;
@@ -53,6 +53,12 @@ export async function trait(system: string, trait: string): Promise<Array<Waypoi
 export async function type(system: string, typeSymbol: string): Promise<Array<Waypoint>> {
 	const ws = await waypoints(system);
 	return ws.filter(s => s.type === typeSymbol);
+}
+
+export async function waypoint(waypointSymbol: string): Promise<Waypoint> {
+	const systemSymbol = systemFromWaypoint(waypointSymbol);
+	const w = await waypoints(systemSymbol);
+	return w.filter(w => w.symbol === waypointSymbol)[0];
 }
 
 export async function waypoints(systemSymbol: string): Promise<Array<Waypoint>> {

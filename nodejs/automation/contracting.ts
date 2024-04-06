@@ -39,34 +39,34 @@ async function runOne(contract: Contract, ship: Ship): Promise<void> {
 
 async function runOreProcurement(contract: Contract, ship: Ship): Promise<void> {
 	const wantedCargo = contract.terms.deliver[0].tradeSymbol;
-	const deliveryPoint = contract.terms.deliver[0].destinationSymbol;
+	const deliveryPoint = await libSystems.waypoint(contract.terms.deliver[0].destinationSymbol);
 	const asteroids = await systems.type(ship.nav.systemSymbol, 'ENGINEERED_ASTEROID');
-	const asteroidSymbol = asteroids[0].symbol;
+	const asteroid = await systems.waypoint(asteroids[0].symbol);
 	while (!contract.fulfilled) {
 		const goodCargo = ship.cargo.inventory.filter(i => i.symbol === wantedCargo)[0]
 		// what we do depends on where we are
 		switch (ship.nav.waypointSymbol) {
-			case asteroidSymbol:
-				await mining.mineUntilFullFor(contract, ship, asteroidSymbol);
+			case asteroid.symbol:
+				await mining.mineUntilFullFor(contract, ship, asteroid);
 				await ship.navigate(deliveryPoint);
 				break;
-			case deliveryPoint:
+			case deliveryPoint.symbol:
 				if (goodCargo !== undefined) { // we could be here if a client restart happens right after selling before we navigate away
 					contract = await contracts.deliver(contract, ship);
 					if (contract.fulfilled) return;
 				}
-				await ship.navigate(asteroidSymbol);
+				await ship.navigate(asteroid);
 				break;
 			default:
 				await selling.sell(ship, wantedCargo);
-				await ship.navigate(asteroidSymbol);
+				await ship.navigate(asteroid);
 		}
 	}
 }
 
 async function runTradeProcurement(contract: Contract, ship: Ship): Promise<void> {
 	const deliver = contract.terms.deliver[0];
-	const deliveryPoint = deliver.destinationSymbol;
+	const deliveryPoint = await libSystems.waypoint(deliver.destinationSymbol);
 	const wantedCargo = deliver.tradeSymbol;
 	while (!contract.fulfilled) {
 		const goodCargo = ship.cargo.inventory.filter(i => i.symbol === wantedCargo)[0]
@@ -90,8 +90,8 @@ async function runTradeProcurement(contract: Contract, ship: Ship): Promise<void
 		// check from the closest one that exports what we need
 		let buyingPoint: string = "";
 		outer: for (let i = 0; i < markets.length; i++) {
-			const waypointSymbol = markets[i].data.symbol;
-			const market = await libSystems.market(waypointSymbol);
+			const waypoint = await libSystems.waypoint(markets[i].data.symbol);
+			const market = await libSystems.market(waypoint);
 			for (let j = 0; j < market.exports.length; j++) {
 				if (market.exports[j].symbol === wantedCargo) {
 					buyingPoint = market.symbol;
@@ -102,8 +102,8 @@ async function runTradeProcurement(contract: Contract, ship: Ship): Promise<void
 		// if we did not find an exporting market we look for an exchange
 		if (buyingPoint === "") {
 			outer: for (let i = 0; i < markets.length; i++) {
-				const waypointSymbol = markets[i].data.symbol;
-				const market = await libSystems.market(waypointSymbol);
+				const waypoint = await libSystems.waypoint(markets[i].data.symbol);
+				const market = await libSystems.market(waypoint);
 				for (let j = 0; j < market.exchange.length; j++) {
 					if (market.exports[j].symbol === wantedCargo) {
 						buyingPoint = market.symbol;
@@ -116,7 +116,7 @@ async function runTradeProcurement(contract: Contract, ship: Ship): Promise<void
 			throw `runTradeProcurement failed, no market exports or exchanges ${wantedCargo}`;
 		}
 		// go buy what we need
-		await ship.navigate(buyingPoint);
+		await ship.navigate(await libSystems.waypoint(buyingPoint));
 		const units = Math.min(
 			deliver.unitsRequired - deliver.unitsFulfilled,
 			ship.cargo.capacity - ship.cargo.units,

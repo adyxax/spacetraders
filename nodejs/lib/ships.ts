@@ -18,6 +18,7 @@ import {
 	Fuel,
 	Nav,
 	Registration,
+	Waypoint,
 } from './types.ts';
 import * as dbAgents from '../database/agents.ts';
 
@@ -96,14 +97,13 @@ export class Ship {
 	isFull(): boolean {
 		return this.cargo.units >= this.cargo.capacity * 0.9;
 	}
-	async navigate(waypointSymbol: string): Promise<void> {
-		if (this.nav.waypointSymbol === waypointSymbol) return;
-		const d =
+	async navigate(waypoint: Waypoint): Promise<void> {
+		if (this.nav.waypointSymbol === waypoint.symbol) return;
 		// TODO compute fuel consumption and refuel if we do not have enough OR if the destination does not sell fuel?
 		await this.refuel();
 		await this.orbit();
 		// TODO if we do not have enough fuel, make a stop to refuel along the way or drift to the destination
-		const response = await send<{fuel: Fuel, nav: Nav}>({endpoint: `/my/ships/${this.symbol}/navigate`, method: 'POST', payload: { waypointSymbol: waypointSymbol }}); // TODO events field
+		const response = await send<{fuel: Fuel, nav: Nav}>({endpoint: `/my/ships/${this.symbol}/navigate`, method: 'POST', payload: { waypointSymbol: waypoint.symbol }}); // TODO events field
 		if (response.error) {
 			switch(response.error.code) {
 				case 4203: // not enough fuel
@@ -117,7 +117,7 @@ export class Ship {
 				case 4214:
 					const sicite = response.error.data as ShipIsCurrentlyInTransitError;
 					await sleep(sicite.secondsToArrival * 1000);
-					return await this.navigate(waypointSymbol);
+					return await this.navigate(waypoint);
 				default: // yet unhandled error
 					debugLog(response);
 					throw response;

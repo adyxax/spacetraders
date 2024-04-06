@@ -1,10 +1,13 @@
 import * as selling from './selling.js';
 import * as dbContracts from '../database/contracts.js';
 import { Ship } from '../lib/ships.js';
-import { Contract } from '../lib/types.ts';
+import {
+	Contract,
+	Waypoint,
+} from '../lib/types.ts';
 import { categorizeCargo } from '../lib/utils.ts';
 
-export async function mineUntilFullFor(contract: Contract, ship: Ship, asteroidSymbol: string): Promise<void> {
+export async function mineUntilFullFor(contract: Contract, ship: Ship, asteroid: Waypoint): Promise<void> {
 	// TODO find a good asteroid
 	while(true) {
 		await mineUntilFull(ship);
@@ -17,7 +20,7 @@ export async function mineUntilFullFor(contract: Contract, ship: Ship, asteroidS
 			|| cargo.wanted[deliver.tradeSymbol] >= deliver.unitsRequired - deliver.unitsFulfilled) return;
 		// we are full but need to sell junk
 		await selling.sell(ship, deliver.tradeSymbol);
-		await ship.navigate(asteroidSymbol);
+		await ship.navigate(asteroid);
 	}
 }
 
