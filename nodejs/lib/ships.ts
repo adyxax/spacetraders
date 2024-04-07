@@ -10,6 +10,7 @@ import {
 	ShipIsStillOnCooldownError,
 	ShipRequiresMoreFuelForNavigationError,
 } from './errors.ts';
+import * as libSystems from './systems.ts';
 import {
 	Agent,
 	Cargo,
@@ -20,7 +21,11 @@ import {
 	Registration,
 	Waypoint,
 } from './types.ts';
+import {
+	shortestPath,
+} from './utils.ts';
 import * as dbAgents from '../database/agents.ts';
+import * as dbContracts from '../database/contracts.ts';
 
 export async function getShips(): Promise<Array<Ship>> {
 	const response = await send<Array<Ship>>({endpoint: `/my/ships`, page: 1});
@@ -98,26 +103,32 @@ export class Ship {
 		return this.cargo.units >= this.cargo.capacity * 0.9;
 	}
 	async navigate(waypoint: Waypoint): Promise<void> {
-		if (this.nav.waypointSymbol === waypoint.symbol) return;
-		// TODO compute fuel consumption and refuel if we do not have enough OR if the destination does not sell fuel?
-		await this.refuel();
+		let path = shortestPath(await libSystems.waypoint(this.nav.route.destination.symbol), waypoint, this.fuel.capacity, await libSystems.waypoints(this.nav.systemSymbol));
+		while (path.length > 0) {
+			const next = path.pop();
+			if (next === undefined) break;
+			if (next.fuel > this.fuel.current) {
+				// TODO also refuel if the destination does not sell fuel?
+				await this.refuel();
+			}
+			await this.navigateTo(next.symbol);
+		}
+	}
+	private async navigateTo(symbol: string): Promise<void> {
 		await this.orbit();
-		// TODO if we do not have enough fuel, make a stop to refuel along the way or drift to the destination
-		const response = await send<{fuel: Fuel, nav: Nav}>({endpoint: `/my/ships/${this.symbol}/navigate`, method: 'POST', payload: { waypointSymbol: waypoint.symbol }}); // TODO events field
+		const response = await send<{fuel: Fuel, nav: Nav}>({endpoint: `/my/ships/${this.symbol}/navigate`, method: 'POST', payload: { waypointSymbol: symbol }}); // TODO events field
 		if (response.error) {
 			switch(response.error.code) {
 				case 4203: // not enough fuel
+					// This should not happen given the logic in navigate()
 					const srmffne = response.error.data as ShipRequiresMoreFuelForNavigationError;
-					// TODO test if it exceeds our maximum
-					// find an intermediate stop to refuel if that is the case
 					debugLog(response);
+					debugLog(srmffne);
 					throw response;
-					//await refuel(ship);
-					//return await navigate(ship, waypoint);
 				case 4214:
 					const sicite = response.error.data as ShipIsCurrentlyInTransitError;
 					await sleep(sicite.secondsToArrival * 1000);
-					return await this.navigate(waypoint);
+					return await this.navigateTo(symbol);
 				default: // yet unhandled error
 					debugLog(response);
 					throw response;
