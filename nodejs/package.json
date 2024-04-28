@@ -10,7 +10,7 @@
 		"typescript-language-server": "^4.3.3"
 	},
 	"dependencies": {
-		"@types/better-sqlite3": "^7.6.9",
-		"better-sqlite3": "^9.4.3"
+		"@types/better-sqlite3": "^7.6.10",
+		"better-sqlite3": "^9.6.0"
 	}
 }
