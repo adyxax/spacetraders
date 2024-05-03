@@ -204,15 +204,27 @@ export class Ship {
 		this.fuel = response.data.fuel;
 		dbAgents.setAgent(response.data.agent);
 	}
-	async sell(tradeSymbol: string): Promise<Cargo> {
+	async sell(tradeSymbol: string, maybeUnits?: number): Promise<Cargo> {
 		// TODO check if our current waypoint has a marketplace and buys tradeSymbol?
 		await this.dock();
 		let units = 0;
-		this.cargo.inventory.forEach(i => {if (i.symbol === tradeSymbol) units = i.units; });
+		if (maybeUnits !== undefined) {
+			units = maybeUnits;
+		} else {
+			this.cargo.inventory.forEach(i => {if (i.symbol === tradeSymbol) units = i.units; });
+		}
+		// TODO take into account the tradevolume if we know it already, we might need to buy in multiple steps
 		const response = await send<{agent: Agent, cargo: Cargo}>({endpoint: `/my/ships/${this.symbol}/sell`, method: 'POST', payload: { symbol: tradeSymbol, units: units }}); // TODO transaction field
 		if (response.error) {
-			debugLog(response);
-			throw response;
+			switch(response.error.code) {
+				case 4604: // units per transaction limit exceeded
+					const mtve = response.error.data as MarketTradeVolumeError;
+					await this.sell(tradeSymbol, mtve.tradeVolume); // TODO cache this information
+					return await this.sell(tradeSymbol, units - mtve.tradeVolume);
+				default:
+					debugLog(response);
+					throw response;
+			}
 		}
 		this.cargo = response.data.cargo;
 		dbAgents.setAgent(response.data.agent);
