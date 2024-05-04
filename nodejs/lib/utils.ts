@@ -1,7 +1,14 @@
+import {
+	debugLog,
+} from './api.ts';
 import { PriorityQueue } from './priority_queue.ts';
+import {
+	market,
+} from './systems.ts';
 import {
 	Cargo,
 	CargoManifest,
+	CommonThing,
 	Waypoint,
 } from './types.ts';
 
@@ -53,7 +60,7 @@ export function sortByDistanceFrom<T extends Point>(a: Point, points: Array<T>):
 type Step = {waypoint: Waypoint, prev: string, fuel: number, total: number};
 type ShortestPath = Array<{symbol: string, fuel: number}>;
 
-export function shortestPath(origin: Waypoint, destination: Waypoint, range: number, waypoints: Array<Waypoint>): ShortestPath {
+export async function shortestPath(origin: Waypoint, destination: Waypoint, range: number, waypoints: Array<Waypoint>): Promise<ShortestPath> {
 	let backtrace: {[key: string]: Step} = {};
 	let fuels: {[key: string]: number} = {}; // fuel = distance + 1 per hop
 	let unvisited: {[key: string]: Waypoint} = {};
@@ -69,7 +76,6 @@ export function shortestPath(origin: Waypoint, destination: Waypoint, range: num
 		const symbol = step.waypoint.symbol;
 		if (!(symbol in unvisited)) continue;
 		backtrace[symbol] = step;
-		if (symbol === destination.symbol) break;
 		const prev = unvisited[symbol];
 		delete unvisited[symbol];
 		for(const ws in unvisited) {
@@ -79,13 +85,22 @@ export function shortestPath(origin: Waypoint, destination: Waypoint, range: num
 			const total = step.fuel + f;
 			if (fuels[ws] > total) {
 				fuels[ws] = total;
-				queue.enqueue({waypoint: w, prev: symbol, fuel: f, total: total}, total);
+				const nextStep = {waypoint: w, prev: symbol, fuel: f, total: total};
+				if (ws === destination.symbol) {
+					backtrace[ws] = nextStep;
+					break;
+				}
+				if (!w.traits.some(t => t.symbol === 'MARKETPLACE')) continue;
+				const m = await market(w);
+				if (whatCanBeTradedAt({"FUEL":1}, m.exports.concat(m.exchange)).length === 0) continue;
+				queue.enqueue(nextStep, total);
 			}
 		}
 	}
 	let result: ShortestPath = [];
-	for (let step = backtrace[destination.symbol]; step.waypoint.symbol != origin.symbol; step = backtrace[step.prev]) {
-		if (step === undefined) throw `Cannot compute shortest path from ${origin.symbol} to ${destination.symbol} with range ${range}.`;
+	let step = backtrace[destination.symbol];
+	if (step === undefined) throw `Cannot compute shortest path from ${origin.symbol} to ${destination.symbol} with range ${range}.`;
+	for (; step.waypoint.symbol != origin.symbol; step = backtrace[step.prev]) {
 		result.push({symbol: step.waypoint.symbol, fuel: step.fuel});
 	}
 	return result;
@@ -93,4 +108,8 @@ export function shortestPath(origin: Waypoint, destination: Waypoint, range: num
 
 export function systemFromWaypoint(waypoint: string): string {
 	return waypoint.split('-').slice(0,2).join('-');
+}
+
+export function whatCanBeTradedAt(cargo: CargoManifest, goods: Array<CommonThing>): Array<CommonThing> {
+    return goods.filter(g => cargo[g.symbol] !== undefined );
 }

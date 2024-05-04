@@ -103,7 +103,7 @@ export class Ship {
 		return this.cargo.units >= this.cargo.capacity * 0.9;
 	}
 	async navigate(waypoint: Waypoint): Promise<void> {
-		let path = shortestPath(await libSystems.waypoint(this.nav.route.destination.symbol), waypoint, this.fuel.capacity, await libSystems.waypoints(this.nav.systemSymbol));
+		let path = await shortestPath(await libSystems.waypoint(this.nav.route.destination.symbol), waypoint, this.fuel.capacity, await libSystems.waypoints(this.nav.systemSymbol));
 		while (path.length > 0) {
 			const next = path.pop();
 			if (next === undefined) break;

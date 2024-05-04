@@ -3,12 +3,9 @@ import * as libSystems from '../lib/systems.ts';
 import {
 	categorizeCargo,
 	sortByDistanceFrom,
+	whatCanBeTradedAt,
 } from '../lib/utils.ts';
 import { Ship } from '../lib/ships.ts';
-import {
-	CargoManifest,
-	CommonThing,
-} from '../lib/types.ts';
 
 // example ctx { ship: {XXX}, keep: 'SILVER_ORE' }
 export async function sell(ship: Ship, good: string): Promise<Ship> {
@@ -53,8 +50,4 @@ export async function sell(ship: Ship, good: string): Promise<Ship> {
 		}
 		throw new Error(`Ship {ship.symbol} has found no importing or exchanging market for its cargo in the system`);
     }
-}
-
-function whatCanBeTradedAt(cargo: CargoManifest, goods: Array<CommonThing>): Array<CommonThing> {
-    return goods.filter(g => cargo[g.symbol] !== undefined );
 }
