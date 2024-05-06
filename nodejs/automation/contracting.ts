@@ -32,11 +32,11 @@ async function runOne(contract: Contract, ship: Ship): Promise<void> {
 	await libContracts.accept(contract);
 	switch(contract.type) {
 		case 'PROCUREMENT':
-			if (contract.terms.deliver[0].tradeSymbol.match(/_ORE$/)) {
-				await runOreProcurement(contract, ship);
-			} else {
+			//if (contract.terms.deliver[0].tradeSymbol.match(/_ORE$/)) {
+			//	await runOreProcurement(contract, ship);
+			//} else {
 				await runTradeProcurement(contract, ship);
-			}
+			//}
 			break;
 		default:
 			throw `Handling of contract type ${contract.type} is not implemented yet`;

@@ -2,12 +2,6 @@ import fs from 'fs';
 import path from 'path';
 import Database from 'better-sqlite3';
 
-let allMigrations: Array<string> = [];
-fs.readdir('./database/', function(err, files) {
-	if (err) throw err;
-	allMigrations = files.filter(e => e.match(/\.sql$/)).map(e => path.join('./database', e));
-});
-
 export type DbData = {data: string};
 
 export const db = new Database(
@@ -18,6 +12,8 @@ db.pragma('foreign_keys = ON');
 db.pragma('journal_mode = WAL');
 
 function init(): void {
+	const filenames = fs.readdirSync('./database/');
+	const allMigrations = filenames.filter(e => e.match(/\.sql$/)).map(e => path.join('./database', e));
 	db.transaction(function migrate() {
 		let version;
 		try {
