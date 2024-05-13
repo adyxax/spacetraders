@@ -10,11 +10,11 @@ import {
 	ShipIsStillOnCooldownError,
 	ShipRequiresMoreFuelForNavigationError,
 } from './errors.ts';
+import { Contract } from './contracts.ts';
 import * as libSystems from './systems.ts';
 import {
 	Agent,
 	Cargo,
-	Contract,
 	Cooldown,
 	Fuel,
 	Nav,
@@ -25,7 +25,6 @@ import {
 	shortestPath,
 } from './utils.ts';
 import * as dbAgents from '../database/agents.ts';
-import * as dbContracts from '../database/contracts.ts';
 
 export async function getShips(): Promise<Array<Ship>> {
 	const response = await send<Array<Ship>>({endpoint: `/my/ships`, page: 1});
@@ -154,8 +153,7 @@ export class Ship {
 					throw response;
 			}
 		}
-		dbContracts.setContract(response.data.contract);
-		return response.data.contract;
+		return new Contract(response.data.contract);
 	}
 	async orbit(): Promise<void> {
 		if (this.nav.status === 'IN_ORBIT') return;

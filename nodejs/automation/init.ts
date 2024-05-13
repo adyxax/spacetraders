@@ -1,14 +1,13 @@
 import * as dbAgents from '../database/agents.ts';
 import * as db from '../database/db.ts';
-import * as dbContracts from '../database/contracts.ts';
 import * as dbTokens from '../database/tokens.ts';
 import {
 	Response,
 } from '../lib/api.ts';
 import {
 	Agent,
-	Contract,
 } from '../lib/types.ts';
+import { Contract } from '../lib/contracts.ts';
 import { Ship } from '../lib/ships.ts';
 import * as libContracts from '../lib/contracts.ts';
 
@@ -31,7 +30,6 @@ export async function init(): Promise<void> {
 		switch(json.error?.code) {
 			case 4111:  // 4111 means the agent symbol has already been claimed so no server reset happened
 				// TODO await agents.agents();
-				await libContracts.getContracts();
 				return;
 			default:
 				throw json;
@@ -40,5 +38,4 @@ export async function init(): Promise<void> {
 	db.reset();
 	dbTokens.addToken(json.data.token);
 	dbAgents.addAgent(json.data.agent);
-	dbContracts.setContract(json.data.contract);
 }

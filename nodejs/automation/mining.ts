@@ -1,8 +1,7 @@
 import * as selling from './selling.js';
-import * as dbContracts from '../database/contracts.js';
+import { Contract } from '../lib/contracts.js';
 import { Ship } from '../lib/ships.js';
 import {
-	Contract,
 	Waypoint,
 } from '../lib/types.ts';
 import { categorizeCargo } from '../lib/utils.ts';
@@ -11,7 +10,6 @@ export async function mineUntilFullFor(contract: Contract, ship: Ship, asteroid:
 	// TODO find a good asteroid
 	while(true) {
 		await mineUntilFull(ship);
-		contract = dbContracts.getContract(contract.id);
 		const deliver = contract.terms.deliver[0];
 		const cargo = categorizeCargo(ship.cargo, deliver.tradeSymbol);
 		const wantedUnits = Object.values(cargo.wanted).reduce((acc, e) => acc += e, 0);

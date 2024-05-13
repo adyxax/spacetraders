@@ -1,10 +1,8 @@
 import { debugLog } from '../lib/api.ts';
 import { Ship } from '../lib/ships.ts';
-import { Contract } from '../lib/types.ts';
 import * as mining from './mining.js';
 import * as selling from './selling.js';
-import * as dbContracts from '../database/contracts.ts';
-import * as libContracts from '../lib/contracts.ts';
+import { Contract, getContracts } from '../lib/contracts.ts';
 import * as libSystems from '../lib/systems.ts';
 import * as systems from '../lib/systems.ts';
 import {
@@ -12,7 +10,7 @@ import {
 } from '../lib/utils.ts';
 
 export async function run(ship: Ship): Promise<void> {
-	const contracts = await libContracts.getContracts();
+	const contracts = await getContracts();
 	const active = contracts.filter(function(c) {
 		if (c.fulfilled) return false;
 		const deadline = new Date(c.terms.deadline).getTime();
@@ -29,7 +27,7 @@ export async function run(ship: Ship): Promise<void> {
 
 async function runOne(contract: Contract, ship: Ship): Promise<void> {
 	debugLog(contract);
-	await libContracts.accept(contract);
+	await contract.accept();
 	switch(contract.type) {
 		case 'PROCUREMENT':
 			//if (contract.terms.deliver[0].tradeSymbol.match(/_ORE$/)) {
@@ -58,7 +56,7 @@ async function runOreProcurement(contract: Contract, ship: Ship): Promise<void> 
 				break;
 			case deliveryPoint.symbol:
 				if (goodCargo !== undefined) { // we could be here if a client restart happens right after selling before we navigate away
-					contract = await libContracts.deliver(contract, ship);
+					await contract.deliver(ship);
 					if (contract.fulfilled) return;
 				}
 				await ship.navigate(asteroid);
@@ -117,7 +115,7 @@ async function runTradeProcurement(contract: Contract, ship: Ship): Promise<void
 		await ship.purchase(wantedCargo, units);
 		// then make a delivery
 		await ship.navigate(deliveryPoint);
-		contract = await libContracts.deliver(contract, ship);
+		await contract.deliver(ship);
 		if (contract.fulfilled) return;
 	}
 	console.log("runTradeProcurement not implemented");
