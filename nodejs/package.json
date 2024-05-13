@@ -1,16 +1,18 @@
 {
-	"module": "nodenext",
-	"type": "module",
 	"engines": {
 		"node": ">=21.6.2"
+	},
+	"dependencies": {
+		"@types/better-sqlite3": "^7.6.10",
+		"better-sqlite3": "^9.6.0"
 	},
 	"devDependencies": {
 		"esrun": "^3.2.26",
 		"typescript": "^5.4.3",
 		"typescript-language-server": "^4.3.3"
 	},
-	"dependencies": {
-		"@types/better-sqlite3": "^7.6.10",
-		"better-sqlite3": "^9.6.0"
-	}
+	"module": "nodenext",
+	"name": "spacetraders",
+	"type": "module",
+	"version": "0.0.1"
 }
