@@ -10,10 +10,10 @@ import {
 	ShipIsStillOnCooldownError,
 	ShipRequiresMoreFuelForNavigationError,
 } from './errors.ts';
+import { Agent, setAgent } from './agent.ts';
 import { Contract } from './contracts.ts';
 import * as libSystems from './systems.ts';
 import {
-	Agent,
 	Cargo,
 	Cooldown,
 	Fuel,
@@ -24,7 +24,6 @@ import {
 import {
 	shortestPath,
 } from './utils.ts';
-import * as dbAgents from '../database/agents.ts';
 
 export async function getShips(): Promise<Array<Ship>> {
 	const response = await send<Array<Ship>>({endpoint: `/my/ships`, page: 1});
@@ -188,7 +187,7 @@ export class Ship {
 			}
 		}
 		this.cargo = response.data.cargo;
-		dbAgents.setAgent(response.data.agent);
+		setAgent(response.data.agent);
 	}
 	async refuel(): Promise<void> {
 		if (this.fuel.current === this.fuel.capacity) return;
@@ -200,7 +199,7 @@ export class Ship {
 			throw response;
 		}
 		this.fuel = response.data.fuel;
-		dbAgents.setAgent(response.data.agent);
+		setAgent(response.data.agent);
 	}
 	async sell(tradeSymbol: string, maybeUnits?: number): Promise<Cargo> {
 		// TODO check if our current waypoint has a marketplace and buys tradeSymbol?
@@ -225,7 +224,7 @@ export class Ship {
 			}
 		}
 		this.cargo = response.data.cargo;
-		dbAgents.setAgent(response.data.agent);
+		setAgent(response.data.agent);
 		return this.cargo;
 	}
 }

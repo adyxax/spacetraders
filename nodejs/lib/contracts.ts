@@ -1,5 +1,4 @@
 import {
-	Agent,
 	Cargo,
 } from './types.ts';
 import {
@@ -8,8 +7,8 @@ import {
 	send,
 	sendPaginated,
 } from './api.ts';
+import { Agent, setAgent } from './agent.ts';
 import { Ship } from './ships.ts';
-import * as dbAgents from '../database/agents.ts';
 
 export async function getContracts(): Promise<Array<Contract>> {
 	const response = await sendPaginated<Contract>({endpoint: '/my/contracts'});
@@ -54,7 +53,9 @@ export class Contract {
 			debugLog(response);
 			throw response;
 		}
-		dbAgents.setAgent(response.data.agent);
+		this.accepted = contract.accepted;
+		this.terms = contract.terms;
+		setAgent(response.data.agent);
 	}
 	async deliver(ship: Ship): Promise<void> {
 		const unitsRemaining = this.terms.deliver[0].unitsRequired - this.terms.deliver[0].unitsFulfilled;
@@ -83,19 +84,22 @@ export class Contract {
 					throw response;
 			}
 		}
+		this.terms = contract.terms;
 		ship.cargo = response.data.cargo;
 		if(response.data.contract.terms.deliver[0].unitsRequired <= response.data.contract.terms.deliver[0].unitsFulfilled) {
 			return await this.fulfill();
 		}
 	}
 	async fulfill(): Promise<void> {
-		if (this.terms.deliver[0].unitsRequired > this.terms.deliver[0].unitsFulfilled) return;
+		if (this.terms.deliver[0].unitsRequired < this.terms.deliver[0].unitsFulfilled) return;
 		if (this.fulfilled) return;
 		const response = await send<{agent: Agent, contract: Contract}>({ endpoint: `/my/contracts/${this.id}/fulfill`, method: 'POST'});
 		if (response.error) {
 			debugLog(response);
 			throw response;
 		}
-		dbAgents.setAgent(response.data.agent);
+		setAgent(response.data.agent);
+		this.fulfilled = true;
+		this.terms = contract.terms;
 	}
 };
