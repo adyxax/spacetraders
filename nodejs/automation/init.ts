@@ -5,7 +5,7 @@ import {
 } from '../lib/api.ts';
 import { Agent, initAgent, setAgent } from '../lib/agent.ts';
 import { Contract } from '../lib/contracts.ts';
-import { Ship } from '../lib/ships.ts';
+import { initShips, Ship } from '../lib/ships.ts';
 import * as libContracts from '../lib/contracts.ts';
 
 const symbol = process.env.NODE_ENV === 'test' ? 'ADYXAX-0' : 'ADYXAX-JS';
@@ -28,6 +28,7 @@ export async function init(): Promise<void> {
 			case 4111:  // 4111 means the agent symbol has already been claimed so no server reset happened
 				// TODO await agents.agents();
 				await initAgent();
+				await initShips();
 				return;
 			default:
 				throw json;
@@ -36,4 +37,5 @@ export async function init(): Promise<void> {
 	db.reset();
 	dbTokens.addToken(json.data.token);
 	setAgent(json.data.agent);
+	await initShips();
 }

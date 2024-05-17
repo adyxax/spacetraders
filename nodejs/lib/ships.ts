@@ -25,15 +25,6 @@ import {
 	shortestPath,
 } from './utils.ts';
 
-export async function getShips(): Promise<Array<Ship>> {
-	const response = await send<Array<Ship>>({endpoint: `/my/ships`, page: 1});
-	if (response.error) {
-		debugLog(response);
-		throw response;
-	}
-	return response.data.map(ship => new Ship(ship));
-}
-
 export class Ship {
 	cargo: Cargo;
 	cooldown: Cooldown;
@@ -227,4 +218,19 @@ export class Ship {
 		setAgent(response.data.agent);
 		return this.cargo;
 	}
+}
+
+let myShips: Array<Ship> = [];
+
+export function getShips(): Array<Ship> {
+	return myShips;
+}
+
+export async function initShips(): Promise<void> {
+	const response = await send<Array<Ship>>({endpoint: `/my/ships`, page: 1});
+	if (response.error) {
+		debugLog(response);
+		throw response;
+	}
+	myShips = response.data.map(ship => new Ship(ship));
 }

@@ -53,8 +53,8 @@ export class Contract {
 			debugLog(response);
 			throw response;
 		}
-		this.accepted = contract.accepted;
-		this.terms = contract.terms;
+		this.accepted = response.data.contract.accepted;
+		this.terms = response.data.contract.terms;
 		setAgent(response.data.agent);
 	}
 	async deliver(ship: Ship): Promise<void> {
@@ -84,7 +84,7 @@ export class Contract {
 					throw response;
 			}
 		}
-		this.terms = contract.terms;
+		this.terms = response.data.contract.terms;
 		ship.cargo = response.data.cargo;
 		if(response.data.contract.terms.deliver[0].unitsRequired <= response.data.contract.terms.deliver[0].unitsFulfilled) {
 			return await this.fulfill();
@@ -100,6 +100,6 @@ export class Contract {
 		}
 		setAgent(response.data.agent);
 		this.fulfilled = true;
-		this.terms = contract.terms;
+		this.terms = response.data.contract.terms;
 	}
 };
