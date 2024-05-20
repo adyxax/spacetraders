@@ -4,17 +4,22 @@ import {
 	sendPaginated,
 } from './api.ts';
 import * as dbMarkets from '../database/markets.ts';
+import * as dbShipyards from '../database/shipyards.ts';
 import * as dbSystems from '../database/systems.ts';
 import {
 	Market,
+	Shipyard,
 	System,
 	Waypoint,
 } from './types.ts'
-import { systemFromWaypoint } from './utils.ts';
+import {
+	isThereAShipAtThisWaypoint,
+	systemFromWaypoint,
+} from './utils.ts';
 
 export async function market(waypoint: Waypoint): Promise<Market> {
     const data = dbMarkets.getMarketAtWaypoint(waypoint.symbol);
-	if (data) { return data; }
+	if (data && (data.tradeGoods || !isThereAShipAtThisWaypoint(waypoint))) { return data; }
 	const systemSymbol = systemFromWaypoint(waypoint.symbol);
 	let response = await send<Market>({endpoint: `/systems/${systemSymbol}/waypoints/${waypoint.symbol}/market`});
 	if (response.error) {
@@ -25,11 +30,18 @@ export async function market(waypoint: Waypoint): Promise<Market> {
 	return response.data;
 }
 
-//export async function shipyard(waypoint: string): Promise<unknown> {
-//	// TODO database caching
-//	const systemSymbol = systemFromWaypoint(waypoint);
-//	return await send({endpoint: `/systems/${systemSymbol}/waypoints/${waypoint}/shipyard`});
-//}
+export async function shipyard(waypoint: Waypoint): Promise<Shipyard> {
+	const data = dbShipyards.get(waypoint.symbol);
+	if (data && (data.ships || !isThereAShipAtThisWaypoint(waypoint))) { return data; }
+	const systemSymbol = systemFromWaypoint(waypoint.symbol);
+	const response = await send<Shipyard>({endpoint: `/systems/${systemSymbol}/waypoints/${waypoint.symbol}/shipyard`});
+	if (response.error) {
+		debugLog(response);
+		throw response;
+	}
+	dbShipyards.set(response.data);
+	return response.data;
+}
 
 export async function system(symbol: string): Promise<System> {
 	let data = dbSystems.getSystem(symbol);

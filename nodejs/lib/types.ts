@@ -80,6 +80,29 @@ export type RouteEndpoint = {
 	y: number;
 };
 
+export type Shipyard = {
+	modificationFee: number;
+	ships: Array<ShipyardShip>;
+	shipTypes: Array<{type: string}>;
+	symbol: string;
+	//transactions: Array<Transaction>;
+};
+
+export type ShipyardShip = {
+    activity: string;
+	// crew
+    description: string;
+	// engine
+	// frame
+	// modules
+	// mounts
+    name: string;
+    purchasePrice: number;
+	// reactor
+    supply: string;
+    type: string;
+};
+
 export type System = {
 	symbol: string;
 	sectorSymbol: string;

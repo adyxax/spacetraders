@@ -2,9 +2,8 @@ import {
 	debugLog,
 } from './api.ts';
 import { PriorityQueue } from './priority_queue.ts';
-import {
-	market,
-} from './systems.ts';
+import { getShips } from './ships.ts';
+import { market } from './systems.ts';
 import {
 	Cargo,
 	CargoManifest,
@@ -39,6 +38,10 @@ export function categorizeCargo(cargo: Cargo, want?: string): CategorizedCargo {
 
 export function distance(a: Point, b: Point) {
 	return Math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2);
+}
+
+export function isThereAShipAtThisWaypoint(waypoint: Waypoint): boolean {
+	return getShips().some(s => s.nav.waypointSymbol === waypoint.symbol);
 }
 
 export function sortByDistanceFrom<T extends Point>(a: Point, points: Array<T>): Array<{data: T, distance: number}>{
