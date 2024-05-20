@@ -64,6 +64,7 @@ type Step = {waypoint: Waypoint, prev: string, fuel: number, total: number};
 type ShortestPath = Array<{symbol: string, fuel: number}>;
 
 export async function shortestPath(origin: Waypoint, destination: Waypoint, range: number, waypoints: Array<Waypoint>): Promise<ShortestPath> {
+	if (range === 0) range = Infinity;
 	let backtrace: {[key: string]: Step} = {};
 	let fuels: {[key: string]: number} = {}; // fuel = distance + 1 per hop
 	let unvisited: {[key: string]: Waypoint} = {};
