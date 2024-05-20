@@ -33,7 +33,7 @@ async function runOne(contract: Contract, ship: Ship): Promise<void> {
 			//if (contract.terms.deliver[0].tradeSymbol.match(/_ORE$/)) {
 			//	await runOreProcurement(contract, ship);
 			//} else {
-				await runTradeProcurement(contract, ship);
+			await runTradeProcurement(contract, ship);
 			//}
 			break;
 		default:

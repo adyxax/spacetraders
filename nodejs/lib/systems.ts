@@ -13,13 +13,13 @@ import {
 	Waypoint,
 } from './types.ts'
 import {
-	isThereAShipAtThisWaypoint,
+	is_there_a_ship_at_this_waypoint,
 	systemFromWaypoint,
 } from './utils.ts';
 
 export async function market(waypoint: Waypoint): Promise<Market> {
     const data = dbMarkets.getMarketAtWaypoint(waypoint.symbol);
-	if (data && (data.tradeGoods || !isThereAShipAtThisWaypoint(waypoint))) { return data; }
+	if (data && (data.tradeGoods || !is_there_a_ship_at_this_waypoint(waypoint))) { return data; }
 	const systemSymbol = systemFromWaypoint(waypoint.symbol);
 	let response = await send<Market>({endpoint: `/systems/${systemSymbol}/waypoints/${waypoint.symbol}/market`});
 	if (response.error) {
@@ -32,7 +32,7 @@ export async function market(waypoint: Waypoint): Promise<Market> {
 
 export async function shipyard(waypoint: Waypoint): Promise<Shipyard> {
 	const data = dbShipyards.get(waypoint.symbol);
-	if (data && (data.ships || !isThereAShipAtThisWaypoint(waypoint))) { return data; }
+	if (data && (data.ships || !is_there_a_ship_at_this_waypoint(waypoint))) { return data; }
 	const systemSymbol = systemFromWaypoint(waypoint.symbol);
 	const response = await send<Shipyard>({endpoint: `/systems/${systemSymbol}/waypoints/${waypoint.symbol}/shipyard`});
 	if (response.error) {

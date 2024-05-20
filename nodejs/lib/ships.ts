@@ -88,6 +88,22 @@ export class Ship {
 		await sleep(response.data.cooldown.remainingSeconds*1000);
 		return this.cargo;
 	}
+	//async flightMode(mode: string): Promise<void> {
+	//	if (this.nav.flightMode === mode) return;
+	//	const response = await send<nav>({endpoint: `/my/ships/${this.symbol}/nav`, method: 'PATCH', payload: { flightmode: mode }});
+	//	if (response.error) {
+	//		switch(response.error.code) {
+	//			case 4214:
+	//				const sicite = response.error.data as ShipIsCurrentlyInTransitError;
+	//				await sleep(sicite.secondsToArrival * 1000);
+	//				return await this.flightMode(mode);
+	//			default: // yet unhandled error
+	//				debugLog(response);
+	//				throw response;
+	//		}
+	//	}
+	//	this.nav = response.data;
+	//}
 	isFull(): boolean {
 		return this.cargo.units >= this.cargo.capacity * 0.9;
 	}
@@ -105,6 +121,7 @@ export class Ship {
 	}
 	private async navigateTo(symbol: string): Promise<void> {
 		await this.orbit();
+		//if (this.fuel.capacity === 0) this.flightMode('BURN');
 		const response = await send<{fuel: Fuel, nav: Nav}>({endpoint: `/my/ships/${this.symbol}/navigate`, method: 'POST', payload: { waypointSymbol: symbol }}); // TODO events field
 		if (response.error) {
 			switch(response.error.code) {

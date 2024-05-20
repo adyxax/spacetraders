@@ -40,7 +40,7 @@ export function distance(a: Point, b: Point) {
 	return Math.sqrt((a.x-b.x)**2 + (a.y-b.y)**2);
 }
 
-export function isThereAShipAtThisWaypoint(waypoint: Waypoint): boolean {
+export function is_there_a_ship_at_this_waypoint(waypoint: Waypoint): boolean {
 	return getShips().some(s => s.nav.waypointSymbol === waypoint.symbol);
 }
 
