@@ -22,6 +22,7 @@ import {
 	Waypoint,
 } from './types.ts';
 import {
+	is_there_a_ship_at_this_waypoint,
 	shortestPath,
 } from './utils.ts';
 
@@ -250,4 +251,49 @@ export async function initShips(): Promise<void> {
 		throw response;
 	}
 	myShips = response.data.map(ship => new Ship(ship));
+}
+
+export async function purchaseShip(shipType: string): Promise<Ship> {
+	const shipyardWaypoints = await libSystems.trait(getShips()[0].nav.systemSymbol, 'SHIPYARD');
+	// backup candidates exist in case we do not have a probe in orbit of a
+	// shipyard selling ${shipType}
+	let backupCandidates: Array<{price: number, waypoint: Waypoint}> = [];
+	let candidates: Array<{price: number, waypoint: Waypoint}> = [];
+	for (const w of shipyardWaypoints) {
+		const shipyardData = await libSystems.shipyard(w);
+		const data = shipyardData.ships.filter(t => t.type === shipType);
+		if (data.length === 0) continue;
+		backupCandidates.push({price: data[0].purchasePrice, waypoint: w });
+		if (!is_there_a_ship_at_this_waypoint(w)) continue;
+		candidates.push({price: data[0].purchasePrice, waypoint: w });
+	}
+	let needsNavigate = false;
+	if (candidates.length === 0) {
+		if (backupCandidates.length === 0) throw `no shipyards sell ships of type ${shipType}`;
+		candidates = backupCandidates;
+		needsNavigate = true;
+	}
+	candidates.sort(function(a, b) {
+		if (a.price < b.price) {
+			return -1;
+		} else if (a.price > b.price) {
+			return 1;
+		}
+		return 0;
+	});
+	if (needsNavigate) {
+		// we did not have a probe in orbit of a shipyard selling ${shipType}
+		// yet, must be early game buying our second probe so let's move the
+		// starting probe in position
+		await getShips()[1].navigate(candidates[0].waypoint);
+	}
+	const response = await send<{agent: Agent, ship: Ship}>({endpoint: `/my/ships`, method: 'POST', payload: {shipType: shipType, waypointSymbol: candidates[0].waypoint.symbol}}); // TODO transaction field
+	if (response.error) {
+		debugLog(response);
+		throw response;
+	}
+	setAgent(response.data.agent);
+	const ship = new Ship(response.data.ship);
+	myShips.push(ship);
+	return ship;
 }

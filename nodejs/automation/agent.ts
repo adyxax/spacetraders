@@ -3,7 +3,7 @@ import events from 'events';
 import * as autoContracting from './contracting.ts';
 import { debugLog, send, sleep } from '../lib/api.ts';
 import { getAgent } from '../lib/agent.ts';
-import { getShips, Ship } from '../lib/ships.ts';
+import { getShips, purchaseShip, Ship } from '../lib/ships.ts';
 import { market, shipyard, trait, waypoint } from '../lib/systems.ts';
 import { Waypoint } from '../lib/types.ts';
 import {
