@@ -7,7 +7,7 @@ import {
 } from '../lib/utils.ts';
 import { Ship } from '../lib/ships.ts';
 
-// example ctx { ship: {XXX}, keep: 'SILVER_ORE' }
+// example ctx { ship: {XXX}, good: 'SILVER_ORE' }
 export async function sell(ship: Ship, good: string): Promise<Ship> {
     outer: while(true) {
 		const waypoint = await libSystems.waypoint(ship.nav.waypointSymbol);

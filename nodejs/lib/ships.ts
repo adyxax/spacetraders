@@ -24,6 +24,7 @@ import {
 import {
 	is_there_a_ship_at_this_waypoint,
 	shortestPath,
+	sortByPrice,
 } from './utils.ts';
 
 export class Ship {
@@ -105,6 +106,9 @@ export class Ship {
 	//	}
 	//	this.nav = response.data;
 	//}
+	isEmpty(): boolean {
+		return this.cargo.inventory.some(i => i.symbol !== 'ANTIMATTER');
+	}
 	isFull(): boolean {
 		return this.cargo.units >= this.cargo.capacity * 0.9;
 	}
@@ -273,14 +277,7 @@ export async function purchaseShip(shipType: string): Promise<Ship> {
 		candidates = backupCandidates;
 		needsNavigate = true;
 	}
-	candidates.sort(function(a, b) {
-		if (a.price < b.price) {
-			return -1;
-		} else if (a.price > b.price) {
-			return 1;
-		}
-		return 0;
-	});
+	sortByPrice(candidates);
 	if (needsNavigate) {
 		// we did not have a probe in orbit of a shipyard selling ${shipType}
 		// yet, must be early game buying our second probe so let's move the

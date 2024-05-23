@@ -21,6 +21,10 @@ type Point = {
 	y: number;
 };
 
+type Price = {
+	price: number;
+};
+
 // cargo is a ship.cargo object, want is an optional symbol
 export function categorizeCargo(cargo: Cargo, want?: string): CategorizedCargo {
 	const wanted = cargo.inventory.filter(i => i.symbol === want || i.symbol === 'ANTIMATTER');
@@ -58,6 +62,17 @@ export function sortByDistanceFrom<T extends Point>(a: Point, points: Array<T>):
 		return 0;
 	});
 	return result;
+}
+
+export function sortByPrice<T extends Price>(data: Array<T>): void {
+	data.sort(function(a, b) {
+		if (a.price < b.price) {
+			return -1;
+		} else if (a.price > b.price) {
+			return 1;
+		}
+		return 0;
+	});
 }
 
 type Step = {waypoint: Waypoint, prev: string, fuel: number, total: number};
