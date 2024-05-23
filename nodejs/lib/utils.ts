@@ -3,7 +3,7 @@ import {
 } from './api.ts';
 import { PriorityQueue } from './priority_queue.ts';
 import { getShips } from './ships.ts';
-import { market } from './systems.ts';
+import { market, trait } from './systems.ts';
 import {
 	Cargo,
 	CargoManifest,
@@ -24,6 +24,19 @@ type Point = {
 type Price = {
 	price: number;
 };
+
+export async function are_we_done_visiting_all_markets(): Promise<boolean> {
+	const marketplaceWaypoints = await trait(getShips()[0].nav.systemSymbol, 'MARKETPLACE');
+	let done = true;
+	for (const w of marketplaceWaypoints) {
+		const marketplaceData = await market(w);
+		if (marketplaceData.tradeGoods !== undefined) continue;
+		if (is_there_a_ship_at_this_waypoint(w)) continue;
+		done = false;
+		break;
+	}
+	return done;
+}
 
 // cargo is a ship.cargo object, want is an optional symbol
 export function categorizeCargo(cargo: Cargo, want?: string): CategorizedCargo {

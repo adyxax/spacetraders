@@ -1,5 +1,3 @@
-import events from 'events';
-
 import * as autoContracting from './contracting.ts';
 import { debugLog, send, sleep } from '../lib/api.ts';
 import { getAgent } from '../lib/agent.ts';
@@ -7,17 +5,18 @@ import { getShips, purchaseShip, Ship } from '../lib/ships.ts';
 import { market, shipyard, trait, waypoint } from '../lib/systems.ts';
 import { Waypoint } from '../lib/types.ts';
 import {
+	are_we_done_visiting_all_markets,
 	distance,
+	is_there_a_ship_at_this_waypoint,
 	sortByDistanceFrom,
 } from '../lib/utils.ts';
 
-const bus = new events.EventEmitter(); // a bus to notify the agent to start purchasing ships
 let running = false;
 let state = 0;
 enum states {
 	start_running_contracts_with_the_command_ship = 0,
 	visit_all_shipyards,
-	send_the_starting_probe_to_a_shipyard_that_sells_probes,
+	visit_all_markets,
 }
 
 export async function run(): Promise<void> {
@@ -31,15 +30,17 @@ export async function run(): Promise<void> {
 			const ships = getShips();
 			switch(state) {
 				case states.start_running_contracts_with_the_command_ship:
-					// TODO await autoContracting.run(ships[0]);
+					autoContracting.run(ships[0]);
 					state++;
 					continue;
 				case states.visit_all_shipyards:
 					await visit_all_shipyards(ships[1]);
 					state++;
 					continue;
-				case states.send_the_starting_probe_to_a_shipyard_that_sells_probes:
-					await send_the_starting_probe_to_a_shipyard_that_sells_probes(ships[1]);
+				case states.visit_all_markets:
+					await visit_all_markets();
+					state++;
+					continue;
 					state++;
 					continue;
 				default:
@@ -53,31 +54,47 @@ export async function run(): Promise<void> {
 	}
 }
 
-async function send_the_starting_probe_to_a_shipyard_that_sells_probes(probe: Ship) {
-	const probeWaypoint = await waypoint(probe.nav.waypointSymbol);
-	const myShipyard = await shipyard(probeWaypoint);
-	if (myShipyard.shipTypes.some(t => t.type === 'SHIP_PROBE')) return;
-	// our starting probe is not at a shipyard that sells probes, let's move
-	const shipyardWaypoints = await trait(probe.nav.systemSymbol, 'SHIPYARD');
-	let candidates: Array<{price: number, waypoint: Waypoint}> = [];
-	for (const w of shipyardWaypoints) {
-		const shipyardData = await shipyard(w);
-		const probeData = shipyardData.ships.filter(t => t.type === 'SHIP_PROBE');
-		if (probeData.length === 0) continue;
-		candidates.push({price: probeData[0].purchasePrice, waypoint: w });
-	};
-	candidates.sort(function(a, b) {
-		if (a.price < b.price) {
-			return -1;
-		} else if (a.price > b.price) {
-			return 1;
+async function visit_all_markets(): Promise<void> {
+	if (await are_we_done_visiting_all_markets()) return;
+	// send all our probes except the starting one to map the system's markets
+	for (const probe of getShips().slice(2)) {
+		if (probe.registration.role !== 'SATELLITE') continue;
+		visit_next_markets(probe);
+		await sleep(10000); // we do not send them all at once so they can chose different destinations
+	}
+	// buy more probes to speed up the process
+	while (true) {
+		if (await are_we_done_visiting_all_markets()) return;
+		while (getAgent().credits < 250000) {
+			await sleep(60000);
 		}
-		return 0;
-	});
-	await probe.navigate(candidates[0].waypoint);
+		const probe = await purchaseShip('SHIP_PROBE');
+		visit_next_markets(probe);
+		await sleep(10000);
+	}
 }
 
-async function visit_all_shipyards(probe: Ship) {
+async function visit_next_markets(probe: Ship): Promise<void> {
+	while (true) {
+		const probeWaypoint = await waypoint(probe.nav.waypointSymbol);
+		const marketplaceWaypoints = await trait(probe.nav.systemSymbol, 'MARKETPLACE');
+		let candidates: Array<Waypoint> = [];
+		for (const w of marketplaceWaypoints) {
+			const marketplaceData = await market(w);
+			if (marketplaceData.tradeGoods) continue;
+			if (is_there_a_ship_at_this_waypoint(w)) continue;
+			candidates.push(w);
+		}
+		if (candidates.length === 0) {
+			return;
+		}
+		const next = sortByDistanceFrom(probeWaypoint, candidates)[0].data;
+		await probe.navigate(next);
+		await market(next);
+	}
+}
+
+async function visit_all_shipyards(probe: Ship): Promise<void> {
 	const probeWaypoint = await waypoint(probe.nav.waypointSymbol);
 	const shipyardWaypoints = await trait(probe.nav.systemSymbol, 'SHIPYARD');
 	let candidates: Array<Waypoint> = [];
