@@ -1,15 +1,5 @@
 package api
 
-type Request struct {
-	index    int
-	priority int
-
-	method  string
-	path    string
-	payload any
-	resp    chan *Response
-}
-
 type PriorityQueue []*Request
 
 func (pq PriorityQueue) Len() int {

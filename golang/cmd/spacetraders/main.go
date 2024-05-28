@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"os"
@@ -12,67 +13,74 @@ import (
 )
 
 func main() {
-	opts := &slog.HandlerOptions{
-		//	//AddSource: true,
-		Level: slog.LevelDebug,
+	var opts *slog.HandlerOptions
+	if os.Getenv("SPACETRADERS_DEBUG") != "" {
+		opts = &slog.HandlerOptions{
+			//AddSource: true,
+			Level: slog.LevelDebug,
+		}
 	}
-	//logger := slog.New(slog.NewJSONHandler(os.Stdout, opts))
-	logger := slog.New(slog.NewTextHandler(os.Stdout, opts))
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, opts))
 	slog.SetDefault(logger)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
+
 	db, err := database.DBInit(ctx, "./spacetraders.db")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "DbInit error %+v\n", err)
 		os.Exit(1)
 	}
+
 	client := api.NewClient(ctx)
 	defer client.Close()
-	err = run( //ctx,
+	if err := run(
 		db,
 		client,
-		//os.Args,
-		//os.Getenv,
-		//os.Getwd,
-		//os.Stdin,
-		//os.Stdout,
-		//os.Stderr,
-	)
-	if err != nil {
+	); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
-		if err = db.Close(); err != nil {
+		if err := db.Close(); err != nil {
 			fmt.Fprintf(os.Stderr, "%s\n", err)
 		}
 		os.Exit(2)
 	}
 }
 
-func run( // ctx context.Context,
+func run(
 	db *database.DB,
 	client *api.Client,
-	//args []string,
-	//getenv func(string) string,
-	//getwd func() (string, error),
-	//stdin io.Reader,
-	//stdout, stderr io.Writer,
-) (err error) {
+) error {
 	// ----- Get token or register ---------------------------------------------
-	token, err := db.GetToken()
-	if err != nil || token == "" {
-		var r api.APIMessage[api.RegisterMessage, any]
-		if r, err = client.Register("COSMIC", "ADYXAX-GO"); err != nil {
-			// TODO handle server reset
-			fmt.Printf("%+v, %+v\n", r, err)
-			return err
+	r, err := client.Register("COSMIC", "ADYXAX-GO")
+	if err != nil {
+		apiError := &api.APIError{}
+		if errors.As(err, &apiError) {
+			switch apiError.Code {
+			case 4111: // Agent symbol has already been claimed
+				token, err := db.GetToken()
+				if err != nil || token == "" {
+					return fmt.Errorf("failed to register and failed to get a token from the database: someone stole are agent's callsign: %w", err)
+				}
+				client.SetToken(token)
+			default:
+				return fmt.Errorf("failed to register: %w\n", err)
+			}
+		} else {
+			return fmt.Errorf("failed to register: %w\n", err)
 		}
-		if err = db.AddToken(r.Data.Token); err != nil {
-			return err
+	} else {
+		token, err := db.GetToken()
+		if err != nil || token == "" {
+			if err := db.AddToken(r.Token); err != nil {
+				return fmt.Errorf("failed to save token: %w", err)
+			}
+			client.SetToken(r.Token)
+		} else {
+			return fmt.Errorf("TODO server reset not implemented yet")
 		}
 	}
-	client.SetToken(token)
 	// ----- Update agent ------------------------------------------------------
 	agent, err := client.MyAgent()
 	slog.Info("agent", "agent", agent, "err", err)
-	return err
+	return nil
 }
