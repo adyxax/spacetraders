@@ -43,7 +43,7 @@ type Response struct {
 	Err     error
 }
 
-func (c *Client) Send(method string, uriRef *url.URL, payload any) (*APIMessage, error) {
+func (c *Client) Send(method string, uriRef *url.URL, payload any, response any) error {
 	responseChannel := make(chan *Response)
 	c.requestsChannel <- &Request{
 		method:          method,
@@ -53,7 +53,24 @@ func (c *Client) Send(method string, uriRef *url.URL, payload any) (*APIMessage,
 		uri:             c.baseURI.ResolveReference(uriRef),
 	}
 	res := <-responseChannel
-	return res.Message, res.Err
+	if res.Err != nil {
+		return res.Err
+	}
+	err := res.Message.Error
+	if err != nil {
+		switch err.Code {
+		case 4214:
+			e := decodeShipInTransitError(err.Data)
+			time.Sleep(e.SecondsToArrival.Duration() * time.Second)
+			return c.Send(method, uriRef, payload, response)
+		default:
+			return err
+		}
+	}
+	if err := json.Unmarshal(res.Message.Data, &response); err != nil {
+		return fmt.Errorf("failed to unmarshal message: %w", err)
+	}
+	return nil
 }
 
 func queueProcessor(client *Client) {

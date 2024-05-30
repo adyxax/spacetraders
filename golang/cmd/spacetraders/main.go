@@ -84,9 +84,5 @@ func run(
 	slog.Info("agent", "agent", agent, "err", err)
 	// ----- Get ships ---------------------------------------------------------
 	ships, err := client.MyShips()
-	err = client.Dock(&ships[0])
-	slog.Info("dock", "ship", ships[0], "err", err)
-	err = client.Orbit(&ships[0])
-	slog.Info("orbit", "ship", ships[0], "err", err)
 	return nil
 }
