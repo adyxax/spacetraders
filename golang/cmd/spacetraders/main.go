@@ -51,7 +51,7 @@ func run(
 	client *api.Client,
 ) error {
 	// ----- Get token or register ---------------------------------------------
-	r, err := client.Register("COSMIC", "ADYXAX-GO")
+	register, err := client.Register("COSMIC", "ADYXAX-GO")
 	if err != nil {
 		apiError := &api.APIError{}
 		if errors.As(err, &apiError) {
@@ -59,9 +59,14 @@ func run(
 			case 4111: // Agent symbol has already been claimed
 				token, err := db.GetToken()
 				if err != nil || token == "" {
-					return fmt.Errorf("failed to register and failed to get a token from the database: someone stole are agent's callsign: %w", err)
+					return fmt.Errorf("failed to register and failed to get a token from the database: someone stole our agent's callsign: %w", err)
 				}
 				client.SetToken(token)
+				agent, err := client.MyAgent()
+				if err != nil {
+					return fmt.Errorf("failed to get agent: %w", err)
+				}
+				slog.Info("agent", "agent", agent)
 			default:
 				return fmt.Errorf("failed to register: %w\n", err)
 			}
@@ -71,18 +76,19 @@ func run(
 	} else {
 		token, err := db.GetToken()
 		if err != nil || token == "" {
-			if err := db.AddToken(r.Token); err != nil {
+			if err := db.AddToken(register.Token); err != nil {
 				return fmt.Errorf("failed to save token: %w", err)
 			}
-			client.SetToken(r.Token)
+			client.SetToken(register.Token)
 		} else {
 			return fmt.Errorf("TODO server reset not implemented yet")
 		}
 	}
-	// ----- Update agent ------------------------------------------------------
-	agent, err := client.MyAgent()
-	slog.Info("agent", "agent", agent, "err", err)
 	// ----- Get ships ---------------------------------------------------------
 	ships, err := client.MyShips()
+	err = client.Dock(&ships[0])
+	slog.Info("dock", "ship", ships[0].Nav.Status, "err", err)
+	err = client.Orbit(&ships[0])
+	slog.Info("orbit", "ship", ships[0].Nav.Status, "err", err)
 	return nil
 }

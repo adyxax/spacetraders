@@ -61,15 +61,22 @@ func DBInit(ctx context.Context, url string) (myDB *DB, err error) {
 		return nil, err
 	}
 
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
 	for version < len(statements) {
-		if _, err = db.ExecContext(ctx, statements[version]); err != nil {
+		if _, err = tx.ExecContext(ctx, statements[version]); err != nil {
+			tx.Rollback()
 			return nil, err
 		}
 		version++
 	}
-	if _, err = db.ExecContext(ctx, `DELETE FROM schema_version; INSERT INTO schema_version (version) VALUES (?);`, version); err != nil {
+	if _, err = tx.ExecContext(ctx, `DELETE FROM schema_version; INSERT INTO schema_version (version) VALUES (?);`, version); err != nil {
+		tx.Rollback()
 		return nil, err
 	}
+	tx.Commit()
 	return &DB{ctx: ctx, db: db}, nil
 }
 
