@@ -9,11 +9,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-type DB struct {
-	ctx context.Context
-	db  *sql.DB
-}
-
 //go:embed sql/*.sql
 var schemaFiles embed.FS
 

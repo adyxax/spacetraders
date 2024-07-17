@@ -35,8 +35,8 @@ func main() {
 	client := api.NewClient(ctx)
 	defer client.Close()
 	if err := run(
-		db,
 		client,
+		db,
 	); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		if err := db.Close(); err != nil {
@@ -47,8 +47,8 @@ func main() {
 }
 
 func run(
-	db *database.DB,
 	client *api.Client,
+	db *database.DB,
 ) error {
 	// ----- Get token or register ---------------------------------------------
 	register, err := client.Register("COSMIC", "ADYXAX-GO")
