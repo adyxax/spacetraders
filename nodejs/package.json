@@ -5,7 +5,7 @@
 	"dependencies": {
 		"@types/better-sqlite3": "^7.6.11",
 		"better-sqlite3": "^11.1.2",
-		"tsx": "^4.16.2"
+		"tsx": "^4.16.5"
 	},
 	"devDependencies": {
 		"esrun": "^3.2.26",
