@@ -3,14 +3,14 @@
 		"node": ">=21.6.2"
 	},
 	"dependencies": {
-		"@types/better-sqlite3": "^7.6.11",
-		"better-sqlite3": "^11.2.1",
+		"@types/better-sqlite3": "^7.6.12",
+		"better-sqlite3": "^11.6.0",
 		"tsx": "^4.18.0"
 	},
 	"devDependencies": {
 		"esrun": "^3.2.26",
-		"prettier": "^3.3.3",
-		"typescript": "^5.5.4",
+		"prettier": "^3.4.1",
+		"typescript": "^5.7.2",
 		"typescript-language-server": "^4.3.3"
 	},
 	"module": "nodenext",
