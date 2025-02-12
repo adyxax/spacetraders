@@ -10,7 +10,6 @@ import (
 
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/api"
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/database"
-	"git.adyxax.org/adyxax/spacetraders/golang/pkg/lib"
 )
 
 func main() {
@@ -41,6 +40,7 @@ func main() {
 	if err := run(
 		apiClient,
 		db,
+		os.Getenv,
 	); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		if err := db.Close(); err != nil {
@@ -53,9 +53,23 @@ func main() {
 func run(
 	apiClient *api.Client,
 	db *database.DB,
+	getenv func(string) string,
 ) error {
+	accountToken := getenv("SPACETRADERS_ACCOUNT_TOKEN")
+	if accountToken == "" {
+		return fmt.Errorf("the SPACETRADERS_ACCOUNT_TOKEN environment variable is not set")
+	}
+	agent := getenv("SPACETRADERS_AGENT")
+	if agent == "" {
+		return fmt.Errorf("the SPACETRADERS_AGENT environment variable is not set")
+	}
+	faction := getenv("SPACETRADERS_FACTION")
+	if faction == "" {
+		return fmt.Errorf("the SPACETRADERS_FACTION environment variable is not set")
+	}
 	// ----- Get token or register ---------------------------------------------
-	register, err := apiClient.Register("COSMIC", "ADYXAX-GO")
+	apiClient.SetToken(accountToken)
+	register, err := apiClient.Register(faction, agent)
 	if err != nil {
 		apiError := &api.APIError{}
 		if errors.As(err, &apiError) {
