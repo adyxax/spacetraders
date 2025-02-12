@@ -3,7 +3,7 @@ package api
 import (
 	"net/url"
 
-	"git.adyxax.org/adyxax/spacetraders/v2/pkg/model"
+	"git.adyxax.org/adyxax/spacetraders/golang/pkg/model"
 )
 
 func (c *Client) Register(faction, symbol string) (*model.Register, error) {

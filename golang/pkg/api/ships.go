@@ -5,7 +5,7 @@ import (
 	"net/url"
 	"path"
 
-	"git.adyxax.org/adyxax/spacetraders/v2/pkg/model"
+	"git.adyxax.org/adyxax/spacetraders/golang/pkg/model"
 )
 
 func (c *Client) Dock(s *model.Ship) error {
