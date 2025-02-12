@@ -26,7 +26,10 @@ func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer cancel()
 
-	db, err := database.DBInit(ctx, "./spacetraders.db")
+	db, err := database.NewDB(
+		ctx,
+		"./spacetraders.db?_txlock=immediate",
+	)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "DbInit error %+v\n", err)
 		os.Exit(1)
