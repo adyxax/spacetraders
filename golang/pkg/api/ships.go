@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"path"
 
+	"git.adyxax.org/adyxax/spacetraders/golang/pkg/agent"
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/model"
 )
 
@@ -12,13 +13,12 @@ func (c *Client) Dock(s *model.Ship) error {
 	if s.Nav.Status == "DOCKED" {
 		return nil
 	}
-	type DockResponse struct {
-		Nav model.Nav `json:"nav"`
-	}
 	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "dock")}
+	type DockResponse struct {
+		Nav *model.Nav `json:"nav"`
+	}
 	var response DockResponse
-	err := c.Send("POST", &uriRef, nil, &response)
-	if err != nil {
+	if err := c.Send("POST", &uriRef, nil, &response); err != nil {
 		return fmt.Errorf("failed to dock ship %s: %w", s.Symbol, err)
 	}
 	s.Nav = response.Nav
@@ -27,25 +27,23 @@ func (c *Client) Dock(s *model.Ship) error {
 
 func (c *Client) MyShips() ([]model.Ship, error) {
 	uriRef := url.URL{Path: "my/ships"}
-	var response []model.Ship
-	err := c.Send("GET", &uriRef, nil, &response)
-	if err != nil {
+	var ships []model.Ship
+	if err := c.Send("GET", &uriRef, nil, &ships); err != nil {
 		return nil, fmt.Errorf("failed to get ships: %w", err)
 	}
-	return response, nil
+	return ships, nil
 }
 
 func (c *Client) Orbit(s *model.Ship) error {
 	if s.Nav.Status == "IN_ORBIT" {
 		return nil
 	}
-	type OrbitResponse struct {
-		Nav model.Nav `json:"nav"`
-	}
 	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "orbit")}
+	type OrbitResponse struct {
+		Nav *model.Nav `json:"nav"`
+	}
 	var response OrbitResponse
-	err := c.Send("POST", &uriRef, nil, &response)
-	if err != nil {
+	if err := c.Send("POST", &uriRef, nil, &response); err != nil {
 		return fmt.Errorf("failed to orbit ship %s: %w", s.Symbol, err)
 	}
 	s.Nav = response.Nav

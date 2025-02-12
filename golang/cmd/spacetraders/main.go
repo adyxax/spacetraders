@@ -32,14 +32,14 @@ func main() {
 		"./spacetraders.db?_txlock=immediate",
 	)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "DbInit error %+v\n", err)
+		fmt.Fprintf(os.Stderr, "failed to open database: %+v\n", err)
 		os.Exit(1)
 	}
 
-	client := api.NewClient(ctx)
-	defer client.Close()
+	apiClient := api.NewClient(ctx)
+	defer apiClient.Close()
 	if err := run(
-		client,
+		apiClient,
 		db,
 	); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
@@ -51,11 +51,11 @@ func main() {
 }
 
 func run(
-	client *api.Client,
+	apiClient *api.Client,
 	db *database.DB,
 ) error {
 	// ----- Get token or register ---------------------------------------------
-	register, err := client.Register("COSMIC", "ADYXAX-GO")
+	register, err := apiClient.Register("COSMIC", "ADYXAX-GO")
 	if err != nil {
 		apiError := &api.APIError{}
 		if errors.As(err, &apiError) {
@@ -65,8 +65,8 @@ func run(
 				if err != nil || token == "" {
 					return fmt.Errorf("failed to register and failed to get a token from the database: someone stole our agent's callsign: %w", err)
 				}
-				client.SetToken(token)
-				agent, err := client.MyAgent()
+				apiClient.SetToken(token)
+				agent, err := apiClient.MyAgent()
 				if err != nil {
 					return fmt.Errorf("failed to get agent: %w", err)
 				}
@@ -83,18 +83,28 @@ func run(
 			if err := db.AddToken(register.Token); err != nil {
 				return fmt.Errorf("failed to save token: %w", err)
 			}
-			client.SetToken(register.Token)
+			apiClient.SetToken(register.Token)
 		} else {
 			// We successfully registered but have a tainted database
 			slog.Error("token", "token", register.Token)
 			return fmt.Errorf("TODO server reset not implemented yet")
 		}
 	}
-	// ----- Get ships ---------------------------------------------------------
-	ships, err := client.MyShips()
-	err = client.Dock(&ships[0])
-	slog.Info("dock", "ship", ships[0].Nav.Status, "err", err)
-	err = client.Orbit(&ships[0])
+	// ----- run agent ---------------------------------------------------------
+	ships, err := apiClient.MyShips()
+	if err != nil {
+		return err
+	}
+	slog.Info("start", "ship", ships[0].Nav.Status, "err", err)
+	err = apiClient.Orbit(&ships[0])
+	if err != nil {
+		return err
+	}
 	slog.Info("orbit", "ship", ships[0].Nav.Status, "err", err)
+	err = apiClient.Dock(&ships[0])
+	if err != nil {
+		return err
+	}
+	slog.Info("dock", "ship", ships[0].Nav.Status, "err", err)
 	return nil
 }
