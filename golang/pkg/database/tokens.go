@@ -1,6 +1,6 @@
 package database
 
-func (db *DB) AddToken(token string) error {
+func (db *DB) SaveToken(token string) error {
 	_, err := db.Exec(`INSERT INTO tokens(data) VALUES (?);`, token)
 	return err
 }

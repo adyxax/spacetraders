@@ -14,10 +14,10 @@ func (c *Client) dock(s *model.Ship) error {
 		return nil
 	}
 	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "dock")}
-	type DockResponse struct {
+	type dockResponse struct {
 		Nav *model.Nav `json:"nav"`
 	}
-	var response DockResponse
+	var response dockResponse
 	if err := c.Send("POST", &uriRef, nil, &response); err != nil {
 		return fmt.Errorf("failed to dock ship %s: %w", s.Symbol, err)
 	}
@@ -39,10 +39,10 @@ func (c *Client) orbit(s *model.Ship) error {
 		return nil
 	}
 	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "orbit")}
-	type OrbitResponse struct {
+	type orbitResponse struct {
 		Nav *model.Nav `json:"nav"`
 	}
-	var response OrbitResponse
+	var response orbitResponse
 	if err := c.Send("POST", &uriRef, nil, &response); err != nil {
 		return fmt.Errorf("failed to orbit ship %s: %w", s.Symbol, err)
 	}
@@ -58,12 +58,12 @@ func (c *Client) Refuel(s *model.Ship, db *database.DB) error {
 		return fmt.Errorf("failed to refuel ship %s: %w", s.Symbol, err)
 	}
 	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "refuel")}
-	type RefuelResponse struct {
+	type refuelResponse struct {
 		Agent       *model.Agent       `json:"agent"`
 		Fuel        *model.Fuel        `json:"fuel"`
 		Transaction *model.Transaction `json:"transaction"`
 	}
-	var response RefuelResponse
+	var response refuelResponse
 	if err := c.Send("POST", &uriRef, nil, &response); err != nil {
 		return fmt.Errorf("failed to refuel ship %s: %w", s.Symbol, err)
 	}

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"fmt"
 	"runtime"
+	"strings"
 )
 
 func initDB(ctx context.Context, url string) (*sql.DB, error) {
@@ -86,6 +87,21 @@ func (db *DB) Close() error {
 	}
 	if err := db.writeDB.Close(); err != nil {
 		return fmt.Errorf("failed to close write database connection: %w", err)
+	}
+	return nil
+}
+
+func (db *DB) Reset() error {
+	_, err := db.Exec(strings.Join([]string{
+		"DELETE FROM agents;",
+		"DELETE FROM markets;",
+		"DELETE FROM systems;",
+		"DELETE FROM tokens;",
+		"DELETE FROM transactions;",
+		"DELETE FROM waypoints;",
+	}, ""))
+	if err != nil {
+		return fmt.Errorf("failed to reset database: %w", err)
 	}
 	return nil
 }

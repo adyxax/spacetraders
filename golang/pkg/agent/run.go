@@ -1,78 +1,76 @@
 package agent
 
 import (
-	"errors"
 	"fmt"
 	"log/slog"
+	"sync"
 
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/api"
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/database"
+	"git.adyxax.org/adyxax/spacetraders/golang/pkg/model"
+)
+
+type agent struct {
+	channel chan shipError
+	client  *api.Client
+	db      *database.DB
+	getenv  func(string) string
+	ships   []model.Ship
+	wg      sync.WaitGroup
+}
+
+type State int
+
+const (
+	start_running_contracts_with_the_command_ship = iota
 )
 
 func Run(
-	apiClient *api.Client,
+	client *api.Client,
 	db *database.DB,
 	getenv func(string) string,
 ) error {
-	accountToken := getenv("SPACETRADERS_ACCOUNT_TOKEN")
-	if accountToken == "" {
-		return fmt.Errorf("the SPACETRADERS_ACCOUNT_TOKEN environment variable is not set")
+	agent := agent{
+		channel: make(chan shipError),
+		client:  client,
+		db:      db,
+		getenv:  getenv,
 	}
-	agent := getenv("SPACETRADERS_AGENT")
-	if agent == "" {
-		return fmt.Errorf("the SPACETRADERS_AGENT environment variable is not set")
-	}
-	faction := getenv("SPACETRADERS_FACTION")
-	if faction == "" {
-		return fmt.Errorf("the SPACETRADERS_FACTION environment variable is not set")
-	}
-	// ----- Get token or register ---------------------------------------------
-	apiClient.SetToken(accountToken)
-	register, err := apiClient.Register(faction, agent)
+	err := agent.init()
 	if err != nil {
-		apiError := &api.APIError{}
-		if errors.As(err, &apiError) {
-			switch apiError.Code {
-			case 4111: // Agent symbol has already been claimed
-				token, err := db.GetToken()
-				if err != nil || token == "" {
-					return fmt.Errorf("failed to register and failed to get a token from the database: someone stole our agent's callsign: %w", err)
-				}
-				apiClient.SetToken(token)
-				agent, err := apiClient.MyAgent()
-				if err != nil {
-					return fmt.Errorf("failed to get agent: %w", err)
-				}
-				slog.Info("agent", "/my/agent", agent)
+		return fmt.Errorf("failed to init agent: %w", err)
+	}
+
+	if agent.ships, err = client.MyShips(); err != nil {
+		return fmt.Errorf("failed to init the agent's ships: %w", err)
+	}
+	var state State = start_running_contracts_with_the_command_ship
+	agent.wg.Add(1)
+	go func() {
+		defer agent.wg.Done()
+		for {
+			switch state {
+			case start_running_contracts_with_the_command_ship:
+				agent.wg.Add(1)
+				go agent.autoContracting(&agent.ships[0])
+				state++
+				return
 			default:
-				return fmt.Errorf("failed to register: %w", err)
+				agent.sendShipError(fmt.Errorf("agent runner reach an unknown state: %d", state), nil)
+				return
 			}
-		} else {
-			return fmt.Errorf("failed to register with an invalid apiError: %w", err)
 		}
-	} else {
-		token, err := db.GetToken()
-		if err != nil || token == "" {
-			if err := db.AddToken(register.Token); err != nil {
-				return fmt.Errorf("failed to save token: %w", err)
-			}
-			apiClient.SetToken(register.Token)
-		} else {
-			// We successfully registered but have a tainted database
-			slog.Error("token", "token", register.Token)
-			return fmt.Errorf("TODO server reset not implemented yet")
+	}()
+	var errWg sync.WaitGroup
+	errWg.Add(1)
+	go func() {
+		defer errWg.Done()
+		for shipErr := range agent.channel {
+			slog.Error("ship error", "err", shipErr.err, "ship", shipErr.ship.Symbol)
 		}
-	}
-	// ----- run agent ---------------------------------------------------------
-	contracts, err := apiClient.MyContracts()
-	if err != nil {
-		return err
-	}
-	slog.Info("start", "contract", contracts[0], "err", err)
-	ships, err := apiClient.MyShips()
-	if err != nil {
-		return err
-	}
-	slog.Info("start", "ship", ships[0].Nav.Status, "err", err)
+	}()
+	agent.wg.Wait()
+	close(agent.channel)
+	errWg.Wait()
 	return nil
 }

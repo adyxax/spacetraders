@@ -12,7 +12,7 @@ func (db *DB) SaveAgent(agent *model.Agent) error {
 	if err != nil {
 		return fmt.Errorf("failed to marshal agent: %w", err)
 	}
-	if _, err := db.Exec(`INSERT INTO agents SET data = (json(?));`, data); err != nil {
+	if _, err := db.Exec(`INSERT INTO agents VALUES data = (json(?));`, data); err != nil {
 		return fmt.Errorf("failed to insert agent data: %w", err)
 	}
 	return nil
