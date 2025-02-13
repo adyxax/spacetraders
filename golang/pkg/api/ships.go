@@ -5,12 +5,11 @@ import (
 	"net/url"
 	"path"
 
-	"git.adyxax.org/adyxax/spacetraders/golang/pkg/agent"
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/database"
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/model"
 )
 
-func (c *Client) Dock(s *model.Ship) error {
+func (c *Client) dock(s *model.Ship) error {
 	if s.Nav.Status == "DOCKED" {
 		return nil
 	}
@@ -35,7 +34,7 @@ func (c *Client) MyShips() ([]model.Ship, error) {
 	return ships, nil
 }
 
-func (c *Client) Orbit(s *model.Ship) error {
+func (c *Client) orbit(s *model.Ship) error {
 	if s.Nav.Status == "IN_ORBIT" {
 		return nil
 	}
@@ -55,7 +54,7 @@ func (c *Client) Refuel(s *model.Ship, db *database.DB) error {
 	if s.Fuel.Current == s.Fuel.Capacity {
 		return nil
 	}
-	if err := c.Dock(s); err != nil {
+	if err := c.dock(s); err != nil {
 		return fmt.Errorf("failed to refuel ship %s: %w", s.Symbol, err)
 	}
 	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "refuel")}
@@ -68,7 +67,9 @@ func (c *Client) Refuel(s *model.Ship, db *database.DB) error {
 	if err := c.Send("POST", &uriRef, nil, &response); err != nil {
 		return fmt.Errorf("failed to refuel ship %s: %w", s.Symbol, err)
 	}
-	agent.SetAgent(response.Agent)
+	if err := db.SaveAgent(response.Agent); err != nil {
+		return fmt.Errorf("failed to refuel ship %s: %w", s.Symbol, err)
+	}
 	s.Fuel = response.Fuel
 	if err := db.AppendTransaction(response.Transaction); err != nil {
 		return fmt.Errorf("failed to refuel ship %s: %w", s.Symbol, err)

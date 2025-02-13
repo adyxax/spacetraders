@@ -1,3 +1,7 @@
+CREATE TABLE agents (
+  id INTEGER PRIMARY KEY,
+  data TEXT NOT NULL
+);
 CREATE TABLE markets (
   id INTEGER PRIMARY KEY,
   systemSymbol TEXT NOT NULL,
