@@ -26,6 +26,7 @@ func (a *agent) autoContracting(ship *model.Ship) {
 			}
 		}
 	}
+	a.sendShipError(fmt.Errorf("failed to run contracts: negotiating new contracts is not implemented yet"), ship)
 	// TODO
 	//for {
 	// negotiate
@@ -37,6 +38,7 @@ func (a *agent) runContract(contract *model.Contract, ship *model.Ship) error {
 	if err := a.client.Accept(contract, a.db); err != nil {
 		return fmt.Errorf("failed to run contract: %w", err)
 	}
+	//slog.Info("running contract", "contract", contract, "ship", ship.Symbol)
 	switch contract.Type {
 	// TODO
 	//case "PROCUREMENT":
