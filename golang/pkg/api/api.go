@@ -9,6 +9,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"strconv"
 	"time"
 )
 
@@ -25,7 +26,13 @@ func (e *APIError) Error() string {
 type APIMessage struct {
 	Data  json.RawMessage `json:"data"`
 	Error *APIError       `json:"error"`
-	//meta
+	Meta  *Meta           `json:"meta"`
+}
+
+type Meta struct {
+	Limit int `json:"limit"`
+	Page  int `json:"page"`
+	Total int `json:"total"`
 }
 
 type Request struct {
@@ -45,30 +52,62 @@ type Response struct {
 
 func (c *Client) Send(method string, uriRef *url.URL, payload any, response any) error {
 	responseChannel := make(chan *Response)
-	c.requestsChannel <- &Request{
-		method:          method,
-		payload:         payload,
-		priority:        10,
-		responseChannel: responseChannel,
-		uri:             c.baseURI.ResolveReference(uriRef),
-	}
-	res := <-responseChannel
-	if res.Err != nil {
-		return res.Err
-	}
-	err := res.Message.Error
-	if err != nil {
-		switch err.Code {
-		case 4214:
-			e := decodeShipInTransitError(err.Data)
-			time.Sleep(e.SecondsToArrival.Duration() * time.Second)
-			return c.Send(method, uriRef, payload, response)
-		default:
+	uri := c.baseURI.ResolveReference(uriRef)
+	query := uri.Query()
+	query.Add("limit", "20")
+	page := 1
+	var rawResponses []json.RawMessage
+	for {
+		query.Set("page", strconv.Itoa(page))
+		uri.RawQuery = query.Encode()
+		c.requestsChannel <- &Request{
+			method:          method,
+			payload:         payload,
+			priority:        10,
+			responseChannel: responseChannel,
+			uri:             uri,
+		}
+		res := <-responseChannel
+		if res.Err != nil {
+			return res.Err
+		}
+		if err := res.Message.Error; err != nil {
 			return err
 		}
+		err := res.Message.Error
+		if err != nil {
+			switch err.Code {
+			case 4214:
+				e := decodeShipInTransitError(err.Data)
+				time.Sleep(e.SecondsToArrival.Duration() * time.Second)
+				return c.Send(method, uriRef, payload, response)
+			default:
+				return err
+			}
+		}
+		if res.Message.Meta == nil {
+			// This is not a paginated request, we are done
+			if err := json.Unmarshal(res.Message.Data, &response); err != nil {
+				return fmt.Errorf("failed to unmarshal message: %w", err)
+			}
+			return nil
+		}
+		var oneResponse []json.RawMessage
+		if err := json.Unmarshal(res.Message.Data, &oneResponse); err != nil {
+			return fmt.Errorf("failed to unmarshal message: %w", err)
+		}
+		rawResponses = append(rawResponses, oneResponse...)
+		if res.Message.Meta.Limit*res.Message.Meta.Page >= res.Message.Meta.Total {
+			break
+		}
+		page++
 	}
-	if err := json.Unmarshal(res.Message.Data, &response); err != nil {
-		return fmt.Errorf("failed to unmarshal message: %w", err)
+	responses, err := json.Marshal(rawResponses)
+	if err != nil {
+		return fmt.Errorf("failed to marshal raw responses to paginated request: %w", err)
+	}
+	if err := json.Unmarshal(responses, &response); err != nil {
+		return fmt.Errorf("failed to unmarshal paginated request responses: %w", err)
 	}
 	return nil
 }
