@@ -11,7 +11,7 @@ func (a *agent) autoContracting(ship *model.Ship) {
 	defer a.wg.Done()
 	contracts, err := a.client.MyContracts()
 	if err != nil {
-		a.sendShipError(fmt.Errorf("failed to get my contracts: %w", err), ship)
+		a.channel <- fmt.Errorf("failed to get my contracts with ship %s: %w", ship.Symbol, err)
 		return
 	}
 	for _, contract := range contracts {
@@ -21,12 +21,12 @@ func (a *agent) autoContracting(ship *model.Ship) {
 		now := time.Now()
 		if now.Before(contract.Terms.Deadline) {
 			if err := a.runContract(&contract, ship); err != nil {
-				a.sendShipError(fmt.Errorf("failed to run contracts: %w", err), ship)
+				a.channel <- fmt.Errorf("failed to run contracts with ship %s: %w", ship.Symbol, err)
 				return
 			}
 		}
 	}
-	a.sendShipError(fmt.Errorf("failed to run contracts: negotiating new contracts is not implemented yet"), ship)
+	a.channel <- fmt.Errorf("failed to run contracts: negotiating new contracts is not implemented yet")
 	// TODO
 	//for {
 	// negotiate

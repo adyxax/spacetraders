@@ -5,3 +5,7 @@ type Common struct {
 	//Name   string `json:"name"`
 	Symbol string `json:"symbol"`
 }
+
+type CommonType struct {
+	Type string `json:"type"`
+}

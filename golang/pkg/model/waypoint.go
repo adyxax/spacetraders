@@ -14,3 +14,11 @@ type Waypoint struct {
 	X            int      `json:"x"`
 	Y            int      `json:"y"`
 }
+
+func (w Waypoint) GetX() int {
+	return w.X
+}
+
+func (w Waypoint) GetY() int {
+	return w.Y
+}

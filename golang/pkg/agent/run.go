@@ -11,7 +11,7 @@ import (
 )
 
 type agent struct {
-	channel chan shipError
+	channel chan error
 	client  *api.Client
 	db      *database.DB
 	getenv  func(string) string
@@ -32,7 +32,7 @@ func Run(
 	getenv func(string) string,
 ) error {
 	agent := agent{
-		channel: make(chan shipError),
+		channel: make(chan error),
 		client:  client,
 		db:      db,
 		getenv:  getenv,
@@ -57,12 +57,11 @@ func Run(
 				state++
 			case visit_all_shipyards:
 				if err := agent.visitAllShipyards(&agent.ships[1]); err != nil {
-					agent.sendShipError(fmt.Errorf("agent runner returned an error on state %d: %w", state, err), &agent.ships[1])
+					agent.channel <- fmt.Errorf("agent runner returned an error on state %d: %w", state, err)
 				}
 				state++
-				return
 			default:
-				agent.sendShipError(fmt.Errorf("agent runner reach an unknown state: %d", state), nil)
+				agent.channel <- fmt.Errorf("agent runner reach an unknown state: %d", state)
 				return
 			}
 		}
@@ -71,8 +70,8 @@ func Run(
 	errWg.Add(1)
 	go func() {
 		defer errWg.Done()
-		for shipErr := range agent.channel {
-			slog.Error("ship error", "err", shipErr.err, "ship", shipErr.ship.Symbol)
+		for err := range agent.channel {
+			slog.Error("error", "err", err)
 		}
 	}()
 	agent.wg.Wait()

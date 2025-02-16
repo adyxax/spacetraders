@@ -10,7 +10,12 @@ CREATE TABLE markets (
 );
 CREATE INDEX markets_systemSymbol on markets (systemSymbol);
 CREATE UNIQUE INDEX markets_data_symbol on markets(json_extract(data, '$.symbol'));
-
+CREATE TABLE shipyards (
+       id INTEGER PRIMARY KEY,
+       data JSON NOT NULL,
+       updated DATE DEFAULT NULL
+);
+CREATE UNIQUE INDEX shipyards_data_symbol on shipyards (json_extract(data, '$.symbol'));
 CREATE TABLE systems (
   id INTEGER PRIMARY KEY,
   data JSON NOT NULL

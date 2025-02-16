@@ -45,6 +45,30 @@ func (db *DB) LoadWaypoint(symbol string) (*model.Waypoint, error) {
 	return &waypoint, nil
 }
 
+func (db *DB) LoadWaypointsInSystem(system *model.System) ([]model.Waypoint, error) {
+	rows, err := db.Query(`SELECT data FROM waypoints WHERE data->>'systemSymbol' = ?;`, system.Symbol)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query waypoints: %w", err)
+	}
+	defer rows.Close()
+	waypoints := make([]model.Waypoint, 0)
+	for rows.Next() {
+		var buf []byte
+		if err := rows.Scan(&buf); err != nil {
+			return nil, fmt.Errorf("failed to load waypoint from row: %w", err)
+		}
+		var waypoint model.Waypoint
+		if err := json.Unmarshal(buf, &waypoint); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal waypoint: %w", err)
+		}
+		waypoints = append(waypoints, waypoint)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to load waypoints from rows: %w", err)
+	}
+	return waypoints, nil
+}
+
 func (db *DB) SaveWaypoint(waypoint *model.Waypoint) error {
 	data, err := json.Marshal(waypoint)
 	if err != nil {

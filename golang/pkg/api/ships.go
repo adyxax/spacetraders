@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"path"
+	"time"
 
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/database"
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/model"
@@ -34,6 +35,36 @@ func (c *Client) MyShips() ([]model.Ship, error) {
 	return ships, nil
 }
 
+func (c *Client) Navigate(s *model.Ship, w *model.Waypoint, db *database.DB) error {
+	// TODO shortest path
+	// TODO go refuel if necessary
+	if err := c.orbit(s); err != nil {
+		return fmt.Errorf("failed to navigate ship %s to %s: %w", s.Symbol, w.Symbol, err)
+	}
+	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "navigate")}
+	type navigateRequest struct {
+		WaypointSymbol string `json:"waypointSymbol"`
+	}
+	type navigateResponse struct {
+		//Events        []model.Event        `json:"events"`
+		Fuel *model.Fuel `json:"fuel"`
+		Nav  *model.Nav  `json:"nav"`
+	}
+	var response navigateResponse
+	if err := c.Send("POST", &uriRef, navigateRequest{w.Symbol}, &response); err != nil {
+		return fmt.Errorf("failed to navigate ship %s to %s: %w", s.Symbol, w.Symbol, err)
+	}
+	s.Fuel = response.Fuel
+	s.Nav = response.Nav
+	select {
+	case <-c.ctx.Done():
+		return fmt.Errorf("failed to navigate ship %s to %s: ctx cancelled", s.Symbol, w.Symbol)
+	case <-time.After(s.Nav.Route.Arrival.Sub(time.Now())):
+	}
+	s.Nav.Status = "IN_ORBIT"
+	return nil
+}
+
 func (c *Client) orbit(s *model.Ship) error {
 	if s.Nav.Status == "IN_ORBIT" {
 		return nil
@@ -50,7 +81,7 @@ func (c *Client) orbit(s *model.Ship) error {
 	return nil
 }
 
-func (c *Client) Refuel(s *model.Ship, db *database.DB) error {
+func (c *Client) refuel(s *model.Ship, db *database.DB) error {
 	if s.Fuel.Current == s.Fuel.Capacity {
 		return nil
 	}

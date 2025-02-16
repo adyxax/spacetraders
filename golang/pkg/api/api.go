@@ -72,14 +72,14 @@ func (c *Client) Send(method string, uriRef *url.URL, payload any, response any)
 			return res.Err
 		}
 		if err := res.Message.Error; err != nil {
-			return err
-		}
-		err := res.Message.Error
-		if err != nil {
 			switch err.Code {
 			case 4214:
 				e := decodeShipInTransitError(err.Data)
-				time.Sleep(e.SecondsToArrival.Duration() * time.Second)
+				select {
+				case <-c.ctx.Done():
+					return fmt.Errorf("failed to send: ctx cancelled")
+				case <-time.After(e.SecondsToArrival.Duration() * time.Second):
+				}
 				return c.Send(method, uriRef, payload, response)
 			default:
 				return err
@@ -193,7 +193,11 @@ func (c *Client) sendOne(method string, uri *url.URL, payload any) (*APIMessage,
 	switch resp.StatusCode {
 	case 429:
 		e := decodeRateLimitError(msg.Error.Data)
-		time.Sleep(e.RetryAfter.Duration() * time.Second)
+		select {
+		case <-c.ctx.Done():
+			return nil, fmt.Errorf("failed to sendOne: ctx cancelled")
+		case <-time.After(e.RetryAfter.Duration() * time.Second):
+		}
 		return c.sendOne(method, uri, payload)
 	}
 	return &msg, nil
