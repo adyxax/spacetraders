@@ -35,12 +35,15 @@ func (c *Client) MyShips() ([]model.Ship, error) {
 	return ships, nil
 }
 
-func (c *Client) Navigate(s *model.Ship, w *model.Waypoint, db *database.DB) error {
+func (c *Client) Navigate(s *model.Ship, waypointSymbol string, db *database.DB) error {
+	if s.Nav.WaypointSymbol == waypointSymbol {
+		return nil
+	}
+	if err := c.orbit(s); err != nil {
+		return fmt.Errorf("failed to navigate ship %s to %s: %w", s.Symbol, waypointSymbol, err)
+	}
 	// TODO shortest path
 	// TODO go refuel if necessary
-	if err := c.orbit(s); err != nil {
-		return fmt.Errorf("failed to navigate ship %s to %s: %w", s.Symbol, w.Symbol, err)
-	}
 	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "navigate")}
 	type navigateRequest struct {
 		WaypointSymbol string `json:"waypointSymbol"`
@@ -51,14 +54,14 @@ func (c *Client) Navigate(s *model.Ship, w *model.Waypoint, db *database.DB) err
 		Nav  *model.Nav  `json:"nav"`
 	}
 	var response navigateResponse
-	if err := c.Send("POST", &uriRef, navigateRequest{w.Symbol}, &response); err != nil {
-		return fmt.Errorf("failed to navigate ship %s to %s: %w", s.Symbol, w.Symbol, err)
+	if err := c.Send("POST", &uriRef, navigateRequest{waypointSymbol}, &response); err != nil {
+		return fmt.Errorf("failed to navigate ship %s to %s: %w", s.Symbol, waypointSymbol, err)
 	}
 	s.Fuel = response.Fuel
 	s.Nav = response.Nav
 	select {
 	case <-c.ctx.Done():
-		return fmt.Errorf("failed to navigate ship %s to %s: ctx cancelled", s.Symbol, w.Symbol)
+		return fmt.Errorf("failed to navigate ship %s to %s: ctx cancelled", s.Symbol, waypointSymbol)
 	case <-time.After(s.Nav.Route.Arrival.Sub(time.Now())):
 	}
 	s.Nav.Status = "IN_ORBIT"

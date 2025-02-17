@@ -8,11 +8,7 @@ import (
 )
 
 func (a *agent) visitAllShipyards(ship *model.Ship) error {
-	system, err := a.client.GetSystem(ship.Nav.SystemSymbol, a.db)
-	if err != nil {
-		return fmt.Errorf("failed to visit all shipyards: %w", err)
-	}
-	shipyards, err := a.listShipyardsInSystem(system)
+	shipyards, err := a.listShipyardsInSystem(ship.Nav.SystemSymbol)
 	if err != nil {
 		return fmt.Errorf("failed to visit all shipyards: %w", err)
 	}
@@ -22,11 +18,7 @@ func (a *agent) visitAllShipyards(ship *model.Ship) error {
 			return true
 		}
 		// filter out shipyards for which a ship is either present or inbound
-		waypoint, err := a.client.GetWaypoint(shipyard.Symbol, a.db)
-		if err != nil {
-			panic(fmt.Errorf("failed to visit all shipyards: %w", err))
-		}
-		return a.isThereAShipAtWaypoint(waypoint)
+		return a.isThereAShipAtWaypoint(shipyard.Symbol)
 	})
 	if len(shipyards) == 0 {
 		return nil
@@ -43,8 +35,8 @@ func (a *agent) visitAllShipyards(ship *model.Ship) error {
 		}
 		waypoints = append(waypoints, *waypoint)
 	}
-	sortByDistanceFrom(*waypoint, waypoints)
-	if err := a.client.Navigate(ship, &waypoints[0], a.db); err != nil {
+	sortByDistanceFrom(waypoint, waypoints)
+	if err := a.client.Navigate(ship, waypoints[0].Symbol, a.db); err != nil {
 		return fmt.Errorf("failed to visit all shipyards: %w", err)
 	}
 	if _, err := a.client.GetShipyard(&waypoints[0], a.db); err != nil {

@@ -3,33 +3,29 @@ package agent
 import (
 	"cmp"
 	"fmt"
+	"math"
 	"slices"
 
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/model"
 )
 
-type Point interface {
-	GetX() int
-	GetY() int
-}
-
-func distance2(a Point, b Point) int {
-	x2 := a.GetX() - b.GetX()
-	y2 := a.GetY() - b.GetY()
+func distance2(a *model.Waypoint, b *model.Waypoint) int {
+	x2 := a.X - b.X
+	y2 := a.Y - b.Y
 	return x2*x2 + y2*y2
 }
 
-func (a *agent) isThereAShipAtWaypoint(waypoint *model.Waypoint) bool {
+func (a *agent) isThereAShipAtWaypoint(waypointSymbol string) bool {
 	for _, ship := range a.ships {
-		if ship.Nav.WaypointSymbol == waypoint.Symbol {
+		if ship.Nav.WaypointSymbol == waypointSymbol {
 			return true
 		}
 	}
 	return false
 }
 
-func (a *agent) listWaypointsInSystemWithTrait(system *model.System, trait string) ([]model.Waypoint, error) {
-	waypoints, err := a.client.ListWaypointsInSystem(system, a.db)
+func (a *agent) listWaypointsInSystemWithTrait(systemSymbol string, trait string) ([]model.Waypoint, error) {
+	waypoints, err := a.client.ListWaypointsInSystem(systemSymbol, a.db)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list waypoints with trait: %w", err)
 	}
@@ -44,24 +40,62 @@ func (a *agent) listWaypointsInSystemWithTrait(system *model.System, trait strin
 	return waypoints, nil
 }
 
-func (a *agent) listShipyardsInSystem(system *model.System) ([]model.Shipyard, error) {
-	waypoints, err := a.listWaypointsInSystemWithTrait(system, "SHIPYARD")
+func (a *agent) listShipyardsInSystem(systemSymbol string) ([]model.Shipyard, error) {
+	waypoints, err := a.listWaypointsInSystemWithTrait(systemSymbol, "SHIPYARD")
 	if err != nil {
-		return nil, fmt.Errorf("failed to list shipyards in system: %w", err)
+		return nil, fmt.Errorf("failed to list shipyards in system %s: %w", systemSymbol, err)
 	}
 	var shipyards []model.Shipyard
 	for i := range waypoints {
 		shipyard, err := a.client.GetShipyard(&waypoints[i], a.db)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list shipyards in system: %w", err)
+			return nil, fmt.Errorf("failed to list shipyards in system %s: %w", systemSymbol, err)
 		}
 		shipyards = append(shipyards, *shipyard)
 	}
 	return shipyards, nil
 }
 
-func sortByDistanceFrom[P Point](origin P, destinations []P) {
-	slices.SortFunc(destinations, func(a, b P) int {
-		return cmp.Compare(distance2(origin, a), distance2(origin, b))
+func (a *agent) sendShipToShipyardThatSells(ship *model.Ship, shipType string) error {
+	shipyards, err := a.listShipyardsInSystem(ship.Nav.SystemSymbol)
+	if err != nil {
+		return fmt.Errorf("failed to send ship %s to a shipyard that sells %s: %w", ship.Symbol, shipType, err)
+	}
+	// filter out the shipyards that do not sell our ship
+	shipyards = slices.DeleteFunc(shipyards, func(shipyard model.Shipyard) bool {
+		for _, t := range shipyard.ShipTypes {
+			if t.Type == shipType {
+				return false
+			}
+		}
+		return true
+	})
+	// sort by cheapest
+	slices.SortFunc(shipyards, func(a, b model.Shipyard) int {
+		aPrice := math.MaxInt
+		for _, ship := range a.Ships {
+			if ship.Type == shipType {
+				aPrice = ship.PurchasePrice
+				break
+			}
+		}
+		bPrice := math.MaxInt
+		for _, ship := range b.Ships {
+			if ship.Type == shipType {
+				bPrice = ship.PurchasePrice
+				break
+			}
+		}
+		return cmp.Compare(aPrice, bPrice)
+	})
+	if err := a.client.Navigate(ship, shipyards[0].Symbol, a.db); err != nil {
+		return fmt.Errorf("failed to send ship %s to a shipyard that sells %s: %w", ship.Symbol, shipType, err)
+	}
+	return nil
+}
+
+func sortByDistanceFrom(origin *model.Waypoint, destinations []model.Waypoint) {
+	slices.SortFunc(destinations, func(a, b model.Waypoint) int {
+		return cmp.Compare(distance2(origin, &a), distance2(origin, &b))
 	})
 }

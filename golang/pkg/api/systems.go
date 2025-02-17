@@ -24,24 +24,6 @@ func (c *Client) GetSystem(symbol string, db *database.DB) (*model.System, error
 	return &system, nil
 }
 
-func (c *Client) ListWaypointsInSystem(system *model.System, db *database.DB) ([]model.Waypoint, error) {
-	if waypoints, err := db.LoadWaypointsInSystem(system); err == nil && waypoints != nil {
-		// TODO check last updated time
-		return waypoints, nil
-	}
-	uriRef := url.URL{Path: path.Join("systems", system.Symbol, "waypoints")}
-	var waypoints []model.Waypoint
-	if err := c.Send("GET", &uriRef, nil, &waypoints); err != nil {
-		return nil, fmt.Errorf("failed to list waypoints in system %s: %w", system.Symbol, err)
-	}
-	for _, waypoint := range waypoints {
-		if err := db.SaveWaypoint(&waypoint); err != nil {
-			return nil, fmt.Errorf("failed to list waypoints in system %s: %w", system.Symbol, err)
-		}
-	}
-	return waypoints, nil
-}
-
 func (c *Client) GetShipyard(waypoint *model.Waypoint, db *database.DB) (*model.Shipyard, error) {
 	if shipyard, err := db.LoadShipyard(waypoint.Symbol); err == nil && shipyard != nil &&
 		(shipyard.Ships != nil) { // TODO || !IsThereAShipAtWaypoint(waypoint)) {
@@ -74,4 +56,22 @@ func (c *Client) GetWaypoint(symbol string, db *database.DB) (*model.Waypoint, e
 		return nil, fmt.Errorf("failed to get waypoint %s: %w", symbol, err)
 	}
 	return &waypoint, nil
+}
+
+func (c *Client) ListWaypointsInSystem(systemSymbol string, db *database.DB) ([]model.Waypoint, error) {
+	if waypoints, err := db.LoadWaypointsInSystem(systemSymbol); err == nil && waypoints != nil {
+		// TODO check last updated time
+		return waypoints, nil
+	}
+	uriRef := url.URL{Path: path.Join("systems", systemSymbol, "waypoints")}
+	var waypoints []model.Waypoint
+	if err := c.Send("GET", &uriRef, nil, &waypoints); err != nil {
+		return nil, fmt.Errorf("failed to list waypoints in system %s: %w", systemSymbol, err)
+	}
+	for _, waypoint := range waypoints {
+		if err := db.SaveWaypoint(&waypoint); err != nil {
+			return nil, fmt.Errorf("failed to list waypoints in system %s: %w", systemSymbol, err)
+		}
+	}
+	return waypoints, nil
 }

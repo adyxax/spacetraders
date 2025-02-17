@@ -23,7 +23,8 @@ type State int
 
 const (
 	start_running_contracts_with_the_command_ship = iota
-	visit_all_shipyards
+	visit_all_shipyards_with_the_starting_probe
+	send_the_starting_probe_to_a_shipyard_that_sells_probes
 )
 
 func Run(
@@ -55,9 +56,16 @@ func Run(
 				agent.wg.Add(1)
 				go agent.autoContracting(&agent.ships[0])
 				state++
-			case visit_all_shipyards:
+			case visit_all_shipyards_with_the_starting_probe:
 				if err := agent.visitAllShipyards(&agent.ships[1]); err != nil {
-					agent.channel <- fmt.Errorf("agent runner returned an error on state %d: %w", state, err)
+					agent.channel <- fmt.Errorf("failed agent run: %w", err)
+					return
+				}
+				state++
+			case send_the_starting_probe_to_a_shipyard_that_sells_probes:
+				if err := agent.sendShipToShipyardThatSells(&agent.ships[1], "SHIP_PROBE"); err != nil {
+					agent.channel <- fmt.Errorf("failed agent run: %w", err)
+					return
 				}
 				state++
 			default:

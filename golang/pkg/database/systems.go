@@ -45,8 +45,8 @@ func (db *DB) LoadWaypoint(symbol string) (*model.Waypoint, error) {
 	return &waypoint, nil
 }
 
-func (db *DB) LoadWaypointsInSystem(system *model.System) ([]model.Waypoint, error) {
-	rows, err := db.Query(`SELECT data FROM waypoints WHERE data->>'systemSymbol' = ?;`, system.Symbol)
+func (db *DB) LoadWaypointsInSystem(systemSymbol string) ([]model.Waypoint, error) {
+	rows, err := db.Query(`SELECT data FROM waypoints WHERE data->>'systemSymbol' = ?;`, systemSymbol)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query waypoints: %w", err)
 	}
