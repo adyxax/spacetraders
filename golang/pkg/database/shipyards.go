@@ -12,7 +12,7 @@ import (
 func (db *DB) LoadShipyard(symbol string) (*model.Shipyard, error) {
 	var buf []byte
 	if err := db.QueryRow(`SELECT data FROM shipyards WHERE data->>'symbol' = ?;`, symbol).Scan(&buf); err != nil {
-		return nil, fmt.Errorf("failed to query shipyard: %w", err)
+		return nil, fmt.Errorf("failed to query row: %w", err)
 	}
 	var shipyard model.Shipyard
 	if err := json.Unmarshal(buf, &shipyard); err != nil {
@@ -36,7 +36,7 @@ func (db *DB) SaveShipyard(shipyard *model.Shipyard) error {
 		sql.Named("updated", time.Now()),
 	)
 	if err != nil {
-		return fmt.Errorf("failed to append shipyard: %w", err)
+		return fmt.Errorf("failed to exec: %w", err)
 	}
 	return nil
 }

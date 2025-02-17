@@ -12,7 +12,7 @@ import (
 func (db *DB) LoadSystem(symbol string) (*model.System, error) {
 	var buf []byte
 	if err := db.QueryRow(`SELECT data FROM systems WHERE data->>'symbol' = ?;`, symbol).Scan(&buf); err != nil {
-		return nil, fmt.Errorf("failed to query system: %w", err)
+		return nil, fmt.Errorf("failed to query row: %w", err)
 	}
 	var system model.System
 	if err := json.Unmarshal(buf, &system); err != nil {
@@ -27,7 +27,7 @@ func (db *DB) SaveSystem(system *model.System) error {
 		return fmt.Errorf("failed to marshal system: %w", err)
 	}
 	if _, err := db.Exec(`INSERT INTO systems(data) VALUES (json(?));`, data); err != nil {
-		return fmt.Errorf("failed to append system: %w", err)
+		return fmt.Errorf("failed to exec: %w", err)
 	}
 	return nil
 }
@@ -36,7 +36,7 @@ func (db *DB) SaveSystem(system *model.System) error {
 func (db *DB) LoadWaypoint(symbol string) (*model.Waypoint, error) {
 	var buf []byte
 	if err := db.QueryRow(`SELECT data FROM waypoints WHERE data->>'symbol' = ?;`, symbol).Scan(&buf); err != nil {
-		return nil, fmt.Errorf("failed to query waypoint: %w", err)
+		return nil, fmt.Errorf("failed to query row: %w", err)
 	}
 	var waypoint model.Waypoint
 	if err := json.Unmarshal(buf, &waypoint); err != nil {
@@ -48,14 +48,14 @@ func (db *DB) LoadWaypoint(symbol string) (*model.Waypoint, error) {
 func (db *DB) LoadWaypointsInSystem(systemSymbol string) ([]model.Waypoint, error) {
 	rows, err := db.Query(`SELECT data FROM waypoints WHERE data->>'systemSymbol' = ?;`, systemSymbol)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query waypoints: %w", err)
+		return nil, fmt.Errorf("failed to query rows: %w", err)
 	}
 	defer rows.Close()
 	waypoints := make([]model.Waypoint, 0)
 	for rows.Next() {
 		var buf []byte
 		if err := rows.Scan(&buf); err != nil {
-			return nil, fmt.Errorf("failed to load waypoint from row: %w", err)
+			return nil, fmt.Errorf("failed to scan row: %w", err)
 		}
 		var waypoint model.Waypoint
 		if err := json.Unmarshal(buf, &waypoint); err != nil {
@@ -64,7 +64,7 @@ func (db *DB) LoadWaypointsInSystem(systemSymbol string) ([]model.Waypoint, erro
 		waypoints = append(waypoints, waypoint)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed to load waypoints from rows: %w", err)
+		return nil, fmt.Errorf("failed to scan rows: %w", err)
 	}
 	return waypoints, nil
 }
@@ -75,7 +75,7 @@ func (db *DB) SaveWaypoint(waypoint *model.Waypoint) error {
 		return fmt.Errorf("failed to marshal waypoint: %w", err)
 	}
 	if _, err := db.Exec(`INSERT INTO waypoints(data, updated) VALUES (json(?), ?);`, data, time.Now()); err != nil {
-		return fmt.Errorf("failed to append waypoint: %w", err)
+		return fmt.Errorf("failed to exec: %w", err)
 	}
 	return nil
 }

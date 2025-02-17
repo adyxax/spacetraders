@@ -20,7 +20,7 @@ func (c *Client) dock(s *model.Ship) error {
 	}
 	var response dockResponse
 	if err := c.Send("POST", &uriRef, nil, &response); err != nil {
-		return fmt.Errorf("failed to dock ship %s: %w", s.Symbol, err)
+		return fmt.Errorf("failed API request: %w", err)
 	}
 	s.Nav = response.Nav
 	return nil
@@ -30,7 +30,7 @@ func (c *Client) MyShips() ([]model.Ship, error) {
 	uriRef := url.URL{Path: "my/ships"}
 	var ships []model.Ship
 	if err := c.Send("GET", &uriRef, nil, &ships); err != nil {
-		return nil, fmt.Errorf("failed to get ships: %w", err)
+		return nil, fmt.Errorf("failed API request: %w", err)
 	}
 	return ships, nil
 }
@@ -40,7 +40,7 @@ func (c *Client) Navigate(s *model.Ship, waypointSymbol string, db *database.DB)
 		return nil
 	}
 	if err := c.orbit(s); err != nil {
-		return fmt.Errorf("failed to navigate ship %s to %s: %w", s.Symbol, waypointSymbol, err)
+		return fmt.Errorf("failed to orbit: %w", err)
 	}
 	// TODO shortest path
 	// TODO go refuel if necessary
@@ -55,13 +55,13 @@ func (c *Client) Navigate(s *model.Ship, waypointSymbol string, db *database.DB)
 	}
 	var response navigateResponse
 	if err := c.Send("POST", &uriRef, navigateRequest{waypointSymbol}, &response); err != nil {
-		return fmt.Errorf("failed to navigate ship %s to %s: %w", s.Symbol, waypointSymbol, err)
+		return fmt.Errorf("failed API request: %w", err)
 	}
 	s.Fuel = response.Fuel
 	s.Nav = response.Nav
 	select {
 	case <-c.ctx.Done():
-		return fmt.Errorf("failed to navigate ship %s to %s: ctx cancelled", s.Symbol, waypointSymbol)
+		return fmt.Errorf("failed: context cancelled")
 	case <-time.After(s.Nav.Route.Arrival.Sub(time.Now())):
 	}
 	s.Nav.Status = "IN_ORBIT"
@@ -78,7 +78,7 @@ func (c *Client) orbit(s *model.Ship) error {
 	}
 	var response orbitResponse
 	if err := c.Send("POST", &uriRef, nil, &response); err != nil {
-		return fmt.Errorf("failed to orbit ship %s: %w", s.Symbol, err)
+		return fmt.Errorf("failed API request: %w", err)
 	}
 	s.Nav = response.Nav
 	return nil
@@ -89,7 +89,7 @@ func (c *Client) refuel(s *model.Ship, db *database.DB) error {
 		return nil
 	}
 	if err := c.dock(s); err != nil {
-		return fmt.Errorf("failed to refuel ship %s: %w", s.Symbol, err)
+		return fmt.Errorf("failed to dock: %w", err)
 	}
 	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "refuel")}
 	type refuelResponse struct {
@@ -99,14 +99,14 @@ func (c *Client) refuel(s *model.Ship, db *database.DB) error {
 	}
 	var response refuelResponse
 	if err := c.Send("POST", &uriRef, nil, &response); err != nil {
-		return fmt.Errorf("failed to refuel ship %s: %w", s.Symbol, err)
+		return fmt.Errorf("failed API request: %w", err)
 	}
 	if err := db.SaveAgent(response.Agent); err != nil {
-		return fmt.Errorf("failed to refuel ship %s: %w", s.Symbol, err)
+		return fmt.Errorf("failed to save agent: %w", err)
 	}
 	s.Fuel = response.Fuel
 	if err := db.AppendTransaction(response.Transaction); err != nil {
-		return fmt.Errorf("failed to refuel ship %s: %w", s.Symbol, err)
+		return fmt.Errorf("failed to append transaction: %w", err)
 	}
 	return nil
 }

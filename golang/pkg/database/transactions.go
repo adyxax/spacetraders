@@ -13,7 +13,7 @@ func (db *DB) AppendTransaction(transaction *model.Transaction) error {
 		return fmt.Errorf("failed to marshal transaction: %w", err)
 	}
 	if _, err := db.Exec(`INSERT INTO transactions(data) VALUES (json(?));`, data); err != nil {
-		return fmt.Errorf("failed to append transaction: %w", err)
+		return fmt.Errorf("failed to exec: %w", err)
 	}
 	return nil
 }

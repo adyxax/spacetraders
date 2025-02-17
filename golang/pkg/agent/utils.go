@@ -27,7 +27,7 @@ func (a *agent) isThereAShipAtWaypoint(waypointSymbol string) bool {
 func (a *agent) listWaypointsInSystemWithTrait(systemSymbol string, trait string) ([]model.Waypoint, error) {
 	waypoints, err := a.client.ListWaypointsInSystem(systemSymbol, a.db)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list waypoints with trait: %w", err)
+		return nil, fmt.Errorf("failed to list waypoints: %w", err)
 	}
 	waypoints = slices.DeleteFunc(waypoints, func(waypoint model.Waypoint) bool {
 		for _, t := range waypoint.Traits {
@@ -43,13 +43,13 @@ func (a *agent) listWaypointsInSystemWithTrait(systemSymbol string, trait string
 func (a *agent) listShipyardsInSystem(systemSymbol string) ([]model.Shipyard, error) {
 	waypoints, err := a.listWaypointsInSystemWithTrait(systemSymbol, "SHIPYARD")
 	if err != nil {
-		return nil, fmt.Errorf("failed to list shipyards in system %s: %w", systemSymbol, err)
+		return nil, fmt.Errorf("failed to list waypoints in system %s with trait SHIPYARD: %w", systemSymbol, err)
 	}
 	var shipyards []model.Shipyard
 	for i := range waypoints {
 		shipyard, err := a.client.GetShipyard(&waypoints[i], a.db)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list shipyards in system %s: %w", systemSymbol, err)
+			return nil, fmt.Errorf("failed to get shipyard %s: %w", waypoints[i].Symbol, err)
 		}
 		shipyards = append(shipyards, *shipyard)
 	}
@@ -59,7 +59,7 @@ func (a *agent) listShipyardsInSystem(systemSymbol string) ([]model.Shipyard, er
 func (a *agent) sendShipToShipyardThatSells(ship *model.Ship, shipType string) error {
 	shipyards, err := a.listShipyardsInSystem(ship.Nav.SystemSymbol)
 	if err != nil {
-		return fmt.Errorf("failed to send ship %s to a shipyard that sells %s: %w", ship.Symbol, shipType, err)
+		return fmt.Errorf("failed to list shipyards in system %s: %w", ship.Nav.SystemSymbol, err)
 	}
 	// filter out the shipyards that do not sell our ship
 	shipyards = slices.DeleteFunc(shipyards, func(shipyard model.Shipyard) bool {
@@ -89,7 +89,7 @@ func (a *agent) sendShipToShipyardThatSells(ship *model.Ship, shipType string) e
 		return cmp.Compare(aPrice, bPrice)
 	})
 	if err := a.client.Navigate(ship, shipyards[0].Symbol, a.db); err != nil {
-		return fmt.Errorf("failed to send ship %s to a shipyard that sells %s: %w", ship.Symbol, shipType, err)
+		return fmt.Errorf("failed to navigate to %s: %w", shipyards[0].Symbol, err)
 	}
 	return nil
 }

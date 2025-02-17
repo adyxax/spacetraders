@@ -44,7 +44,7 @@ func Run(
 	}
 
 	if agent.ships, err = client.MyShips(); err != nil {
-		return fmt.Errorf("failed to init the agent's ships: %w", err)
+		return fmt.Errorf("failed to get my ships: %w", err)
 	}
 	var state State = start_running_contracts_with_the_command_ship
 	agent.wg.Add(1)
@@ -58,18 +58,18 @@ func Run(
 				state++
 			case visit_all_shipyards_with_the_starting_probe:
 				if err := agent.visitAllShipyards(&agent.ships[1]); err != nil {
-					agent.channel <- fmt.Errorf("failed agent run: %w", err)
+					agent.channel <- fmt.Errorf("failed to visit all shipyards with ship %s: %w", agent.ships[1].Symbol, err)
 					return
 				}
 				state++
 			case send_the_starting_probe_to_a_shipyard_that_sells_probes:
 				if err := agent.sendShipToShipyardThatSells(&agent.ships[1], "SHIP_PROBE"); err != nil {
-					agent.channel <- fmt.Errorf("failed agent run: %w", err)
+					agent.channel <- fmt.Errorf("failed to send the starting probe to a shipyard that sells probes: %w", err)
 					return
 				}
 				state++
 			default:
-				agent.channel <- fmt.Errorf("agent runner reach an unknown state: %d", state)
+				agent.channel <- fmt.Errorf("state not implemented: %d", state)
 				return
 			}
 		}
@@ -79,7 +79,7 @@ func Run(
 	go func() {
 		defer errWg.Done()
 		for err := range agent.channel {
-			slog.Error("error", "err", err)
+			slog.Error("agent run error", "err", err)
 		}
 	}()
 	agent.wg.Wait()
