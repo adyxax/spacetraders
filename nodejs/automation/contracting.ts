@@ -1,7 +1,8 @@
+import * as autoTrading from './trading.ts';
 import { debugLog } from '../lib/api.ts';
 import { Ship } from '../lib/ships.ts';
-import * as mining from './mining.js';
-import * as selling from './selling.js';
+import * as mining from './mining.ts';
+import * as selling from './selling.ts';
 import { Contract, getContracts } from '../lib/contracts.ts';
 import * as libSystems from '../lib/systems.ts';
 import * as systems from '../lib/systems.ts';
@@ -105,7 +106,9 @@ async function runTradeProcurement(contract: Contract, ship: Ship): Promise<void
 				}
 			}
 			if (buyingPoint === "") {
-				throw `runTradeProcurement failed, no market exports or exchanges ${wantedCargo}`;
+				debugLog(`runTradeProcurement failed, no market exports or exchanges ${wantedCargo}`);
+				//await autoTrading.run(ship);
+				throw "not implemented";
 			}
 			// go buy what we need
 			await ship.navigate(await libSystems.waypoint(buyingPoint));

@@ -6,6 +6,7 @@ module SpaceTraders.Automation.Init
   ) where
 
 import           Control.Exception
+import           Control.Monad
 import           Control.Monad.Error.Class
 import           Control.Monad.Reader
 import qualified Data.Text                        as T

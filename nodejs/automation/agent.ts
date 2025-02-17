@@ -17,6 +17,7 @@ enum states {
 	start_running_contracts_with_the_command_ship = 0,
 	visit_all_shipyards,
 	visit_all_markets,
+	send_probes_to_all_shipyards,
 }
 
 export async function run(): Promise<void> {
@@ -41,6 +42,8 @@ export async function run(): Promise<void> {
 					await visit_all_markets();
 					state++;
 					continue;
+				case states.send_probes_to_all_shipyards:
+					await send_probes_to_all_shipyards();
 					state++;
 					continue;
 				default:
@@ -51,6 +54,33 @@ export async function run(): Promise<void> {
 	} catch (e) {
 		running = false;
 		throw e;
+	}
+}
+
+async function send_probes_to_all_shipyards(): Promise<void> {
+	outer: while(true) {
+		const shipyardWaypoints = await trait(getShips()[0].nav.systemSymbol, 'SHIPYARD');
+		let candidates: Array<Waypoint> = [];
+		for (const w of shipyardWaypoints) {
+			if (is_there_a_ship_at_this_waypoint(w)) continue;
+			candidates.push(w);
+		}
+		if (candidates.length === 0) return;
+		// if we do not have enough probes, we buy some
+		if (candidates.length - 1 >= getShips().length - 2) {
+			const probe = await purchaseShip('SHIP_PROBE');
+			const probeWaypoint = await waypoint(probe.nav.waypointSymbol);
+			await probe.navigate(candidates[0]);
+			continue outer;
+		}
+		// otherwise we find the closest ones from a shipyard
+		const probes = getShips().slice(2);
+		let probesWaypoints: Array<Waypoint> = [];
+		for (const p of probes) {
+			probesWaypoints.push(await waypoint(p.nav.waypointSymbol));
+		}
+		const next = sortByDistanceFrom(candidates[0], probesWaypoints)[0].data;
+		await probes.filter(p => p.nav.waypointSymbol === next.symbol)[0].navigate(candidates[0]);
 	}
 }
 

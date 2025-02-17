@@ -1,20 +1,19 @@
 {
 	"engines": {
-		"node": ">=21.6.2"
-	},
-	"dependencies": {
-		"@types/better-sqlite3": "^7.6.12",
-		"better-sqlite3": "^11.7.2",
-		"tsx": "^4.18.0",
-		"typescript": "^5.7.3"
-	},
-	"devDependencies": {
-		"esrun": "^3.2.26",
-		"prettier": "^3.4.2",
-		"typescript-language-server": "^4.3.3"
+		"node": ">=22.14.0"
 	},
 	"module": "nodenext",
 	"name": "spacetraders",
 	"type": "module",
-	"version": "0.0.1"
+	"version": "0.0.1",
+	"dependencies": {
+		"better-sqlite3": "^11.8.1"
+	},
+	"devDependencies": {
+		"@types/better-sqlite3": "^7.6.12",
+		"npm-check-updates": "^17.1.14",
+		"prettier": "^3.5.1",
+		"ts-node": "^10.9.2",
+		"typescript": "^5.7.3"
+	}
 }

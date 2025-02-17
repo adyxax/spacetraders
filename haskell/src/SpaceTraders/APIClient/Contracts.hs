@@ -24,5 +24,5 @@ myContracts = do
         Right (APIMessage r (Just p')) -> do
           mapM_ setContract r
           if limit p' * page p' < total p' then listContracts' (nextPage p')
-                                             else Right <$> getContracts
+                                           else Right <$> getContracts
         _ -> undefined
