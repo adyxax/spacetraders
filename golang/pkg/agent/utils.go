@@ -40,6 +40,22 @@ func (a *agent) listWaypointsInSystemWithTrait(systemSymbol string, trait string
 	return waypoints, nil
 }
 
+func (a *agent) listMarketsInSystem(systemSymbol string) ([]model.Market, error) {
+	waypoints, err := a.listWaypointsInSystemWithTrait(systemSymbol, "MARKETPLACE")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list waypoints in system %s with trait MARKETPLACE: %w", systemSymbol, err)
+	}
+	var markets []model.Market
+	for i := range waypoints {
+		market, err := a.client.GetMarket(waypoints[i].Symbol, a.db)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get market %s: %w", waypoints[i].Symbol, err)
+		}
+		markets = append(markets, *market)
+	}
+	return markets, nil
+}
+
 func (a *agent) listShipyardsInSystem(systemSymbol string) ([]model.Shipyard, error) {
 	waypoints, err := a.listWaypointsInSystemWithTrait(systemSymbol, "SHIPYARD")
 	if err != nil {
@@ -47,7 +63,7 @@ func (a *agent) listShipyardsInSystem(systemSymbol string) ([]model.Shipyard, er
 	}
 	var shipyards []model.Shipyard
 	for i := range waypoints {
-		shipyard, err := a.client.GetShipyard(&waypoints[i], a.db)
+		shipyard, err := a.client.GetShipyard(waypoints[i].Symbol, a.db)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get shipyard %s: %w", waypoints[i].Symbol, err)
 		}

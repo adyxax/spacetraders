@@ -9,28 +9,31 @@ import (
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/model"
 )
 
-func (c *Client) GetSystem(symbol string, db *database.DB) (*model.System, error) {
-	if system, err := db.LoadSystem(symbol); err == nil && system != nil {
-		return system, nil
+func (c *Client) GetMarket(waypointSymbol string, db *database.DB) (*model.Market, error) {
+	if market, err := db.LoadMarket(waypointSymbol); err == nil && market != nil {
+		// TODO check last updated time
+		return market, nil
 	}
-	uriRef := url.URL{Path: path.Join("systems", symbol)}
-	var system model.System
-	if err := c.Send("GET", &uriRef, nil, &system); err != nil {
+	systemSymbol := WaypointSymbolToSystemSymbol(waypointSymbol)
+	uriRef := url.URL{Path: path.Join("systems", systemSymbol, "waypoints", waypointSymbol, "market")}
+	var market model.Market
+	if err := c.Send("GET", &uriRef, nil, &market); err != nil {
 		return nil, fmt.Errorf("failed API request: %w", err)
 	}
-	if err := db.SaveSystem(&system); err != nil {
-		return nil, fmt.Errorf("failed to save system %s: %w", system.Symbol, err)
+	if err := db.SaveMarket(&market); err != nil {
+		return nil, fmt.Errorf("failed to save market %s: %w", market.Symbol, err)
 	}
-	return &system, nil
+	return &market, nil
 }
 
-func (c *Client) GetShipyard(waypoint *model.Waypoint, db *database.DB) (*model.Shipyard, error) {
-	if shipyard, err := db.LoadShipyard(waypoint.Symbol); err == nil && shipyard != nil &&
+func (c *Client) GetShipyard(waypointSymbol string, db *database.DB) (*model.Shipyard, error) {
+	if shipyard, err := db.LoadShipyard(waypointSymbol); err == nil && shipyard != nil &&
 		(shipyard.Ships != nil) { // TODO || !IsThereAShipAtWaypoint(waypoint)) {
 		// TODO check last updated time
 		return shipyard, nil
 	}
-	uriRef := url.URL{Path: path.Join("systems", waypoint.SystemSymbol, "waypoints", waypoint.Symbol, "shipyard")}
+	systemSymbol := WaypointSymbolToSystemSymbol(waypointSymbol)
+	uriRef := url.URL{Path: path.Join("systems", systemSymbol, "waypoints", waypointSymbol, "shipyard")}
 	var shipyard model.Shipyard
 	if err := c.Send("GET", &uriRef, nil, &shipyard); err != nil {
 		return nil, fmt.Errorf("failed API request: %w", err)
@@ -41,13 +44,28 @@ func (c *Client) GetShipyard(waypoint *model.Waypoint, db *database.DB) (*model.
 	return &shipyard, nil
 }
 
-func (c *Client) GetWaypoint(symbol string, db *database.DB) (*model.Waypoint, error) {
-	if waypoint, err := db.LoadWaypoint(symbol); err == nil && waypoint != nil {
+func (c *Client) GetSystem(systemSymbol string, db *database.DB) (*model.System, error) {
+	if system, err := db.LoadSystem(systemSymbol); err == nil && system != nil {
+		return system, nil
+	}
+	uriRef := url.URL{Path: path.Join("systems", systemSymbol)}
+	var system model.System
+	if err := c.Send("GET", &uriRef, nil, &system); err != nil {
+		return nil, fmt.Errorf("failed API request: %w", err)
+	}
+	if err := db.SaveSystem(&system); err != nil {
+		return nil, fmt.Errorf("failed to save system %s: %w", system.Symbol, err)
+	}
+	return &system, nil
+}
+
+func (c *Client) GetWaypoint(waypointSymbol string, db *database.DB) (*model.Waypoint, error) {
+	if waypoint, err := db.LoadWaypoint(waypointSymbol); err == nil && waypoint != nil {
 		// TODO check last updated time
 		return waypoint, nil
 	}
-	systemSymbol := WaypointSymbolToSystemSymbol(symbol)
-	uriRef := url.URL{Path: path.Join("systems", systemSymbol, "waypoints", symbol)}
+	systemSymbol := WaypointSymbolToSystemSymbol(waypointSymbol)
+	uriRef := url.URL{Path: path.Join("systems", systemSymbol, "waypoints", waypointSymbol)}
 	var waypoint model.Waypoint
 	if err := c.Send("GET", &uriRef, nil, &waypoint); err != nil {
 		return nil, fmt.Errorf("failed API request: %w", err)

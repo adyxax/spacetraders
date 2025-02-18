@@ -4,11 +4,9 @@ CREATE TABLE agents (
 );
 CREATE TABLE markets (
   id INTEGER PRIMARY KEY,
-  systemSymbol TEXT NOT NULL,
   data JSON NOT NULL,
   updated DATE NOT NULL
 );
-CREATE INDEX markets_systemSymbol on markets (systemSymbol);
 CREATE UNIQUE INDEX markets_data_symbol on markets(json_extract(data, '$.symbol'));
 CREATE TABLE shipyards (
        id INTEGER PRIMARY KEY,

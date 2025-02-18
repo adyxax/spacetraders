@@ -15,7 +15,7 @@ func (a *agent) autoContracting(ship *model.Ship) {
 		return
 	}
 	for _, contract := range contracts {
-		if contract.Fullfilled {
+		if contract.Fulfilled {
 			continue
 		}
 		now := time.Now()
@@ -27,11 +27,17 @@ func (a *agent) autoContracting(ship *model.Ship) {
 		}
 	}
 	a.channel <- fmt.Errorf("negotiating new contracts is not implemented yet")
-	// TODO
-	//for {
-	// negotiate
-	// runContract
-	//}
+	for {
+		contract, err := a.client.NegotiateContract(ship)
+		if err != nil {
+			a.channel <- fmt.Errorf("failed to negotiate contract: %w", err)
+			return
+		}
+		if err := a.runContract(contract, ship); err != nil {
+			a.channel <- fmt.Errorf("failed to run contract %s: %w", contract.Id, err)
+			return
+		}
+	}
 }
 
 func (a *agent) runContract(contract *model.Contract, ship *model.Ship) error {
@@ -51,15 +57,33 @@ func (a *agent) runContract(contract *model.Contract, ship *model.Ship) error {
 }
 
 func (a *agent) runProcurement(contract *model.Contract, ship *model.Ship) error {
-	deliveryCargo := contract.Terms.Deliver[0].TradeSymbol
-	deliveryWaypoint, err := a.client.GetWaypoint(contract.Terms.Deliver[0].DestinationSymbol, a.db)
-	if err != nil {
-		return fmt.Errorf("failed to get delivery waypoint: %w", err)
+	if contract.Fulfilled {
+		return nil
 	}
-	for !contract.Fullfilled {
-		_ = deliveryCargo
-		_ = deliveryWaypoint
-		return fmt.Errorf("not implemented")
+	deliver := contract.Terms.Deliver[0]
+	// make sure we are not carrying useless stuff
+	if err := a.sellEverythingExcept(ship, deliver.TradeSymbol); err != nil {
+		return fmt.Errorf("failed to sell everything except %s for ship %s: %w", deliver.TradeSymbol, ship.Symbol, err)
 	}
-	return fmt.Errorf("not implemented")
+	// procure the desired goods
+	if ship.Cargo.Units < min(deliver.UnitsRequired-deliver.UnitsFulfilled, ship.Cargo.Capacity) {
+		if err := a.buyTradeGood(ship, deliver.TradeSymbol); err != nil {
+			return fmt.Errorf("failed to buy trade good %s with ship %s: %w", deliver.TradeSymbol, ship.Symbol, err)
+		}
+	}
+	// deliver the goods
+	if err := a.client.Navigate(ship, deliver.DestinationSymbol, a.db); err != nil {
+		return fmt.Errorf("failed to navigate to %s: %w", deliver.DestinationSymbol, err)
+	}
+	if err := a.client.Deliver(contract, ship, a.db); err != nil {
+		return fmt.Errorf("failed to deliver: %w", err)
+	}
+	deliver = contract.Terms.Deliver[0]
+	if deliver.UnitsRequired == deliver.UnitsFulfilled {
+		if err := a.client.Fulfill(contract, a.db); err != nil {
+			return fmt.Errorf("failed to fulfill: %w", err)
+		}
+		return nil
+	}
+	return a.runProcurement(contract, ship)
 }

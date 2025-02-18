@@ -7,7 +7,7 @@ type Contract struct {
 	DeadlineToAccept time.Time `json:"deadlineToAccept"`
 	Expiration       time.Time `json:"expiration"`
 	FactionSymbol    string    `json:"factionSymbol"`
-	Fullfilled       bool      `json:"fulfilled"`
+	Fulfilled        bool      `json:"fulfilled"`
 	Id               string    `json:"id"`
 	Terms            *Terms    `json:"terms"`
 	Type             string    `json:"type"`

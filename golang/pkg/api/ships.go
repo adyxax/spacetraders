@@ -68,6 +68,18 @@ func (c *Client) Navigate(s *model.Ship, waypointSymbol string, db *database.DB)
 	return nil
 }
 
+func (c *Client) NegotiateContract(s *model.Ship) (*model.Contract, error) {
+	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "negotiate", "contract")}
+	type negotiateResponse struct {
+		Contract *model.Contract `json:"contract"`
+	}
+	var response negotiateResponse
+	if err := c.Send("POST", &uriRef, nil, &response); err != nil {
+		return nil, fmt.Errorf("failed API request: %w", err)
+	}
+	return response.Contract, nil
+}
+
 func (c *Client) orbit(s *model.Ship) error {
 	if s.Nav.Status == "IN_ORBIT" {
 		return nil
@@ -81,6 +93,34 @@ func (c *Client) orbit(s *model.Ship) error {
 		return fmt.Errorf("failed API request: %w", err)
 	}
 	s.Nav = response.Nav
+	return nil
+}
+
+func (c *Client) Purchase(s *model.Ship, cargoItem string, units int, db *database.DB) error {
+	if err := c.dock(s); err != nil {
+		return fmt.Errorf("failed to dock: %w", err)
+	}
+	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "purchase")}
+	type purchaseRequest struct {
+		Symbol string `json:"symbol"`
+		Units  int    `json:"units"`
+	}
+	type purchaseResponse struct {
+		Agent       *model.Agent       `json:"agent"`
+		Cargo       *model.Cargo       `json:"cargo"`
+		Transaction *model.Transaction `json:"transaction"`
+	}
+	var response purchaseResponse
+	if err := c.Send("POST", &uriRef, purchaseRequest{cargoItem, units}, &response); err != nil {
+		return fmt.Errorf("failed API request: %w", err)
+	}
+	if err := db.SaveAgent(response.Agent); err != nil {
+		return fmt.Errorf("failed to save agent: %w", err)
+	}
+	s.Cargo = response.Cargo
+	if err := db.AppendTransaction(response.Transaction); err != nil {
+		return fmt.Errorf("failed to append transaction: %w", err)
+	}
 	return nil
 }
 
@@ -105,6 +145,34 @@ func (c *Client) refuel(s *model.Ship, db *database.DB) error {
 		return fmt.Errorf("failed to save agent: %w", err)
 	}
 	s.Fuel = response.Fuel
+	if err := db.AppendTransaction(response.Transaction); err != nil {
+		return fmt.Errorf("failed to append transaction: %w", err)
+	}
+	return nil
+}
+
+func (c *Client) Sell(s *model.Ship, cargoItem string, units int, db *database.DB) error {
+	if err := c.dock(s); err != nil {
+		return fmt.Errorf("failed to dock: %w", err)
+	}
+	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "sell")}
+	type sellRequest struct {
+		Symbol string `json:"symbol"`
+		Units  int    `json:"units"`
+	}
+	type sellResponse struct {
+		Agent       *model.Agent       `json:"agent"`
+		Cargo       *model.Cargo       `json:"cargo"`
+		Transaction *model.Transaction `json:"transaction"`
+	}
+	var response sellResponse
+	if err := c.Send("POST", &uriRef, sellRequest{cargoItem, units}, &response); err != nil {
+		return fmt.Errorf("failed API request: %w", err)
+	}
+	if err := db.SaveAgent(response.Agent); err != nil {
+		return fmt.Errorf("failed to save agent: %w", err)
+	}
+	s.Cargo = response.Cargo
 	if err := db.AppendTransaction(response.Transaction); err != nil {
 		return fmt.Errorf("failed to append transaction: %w", err)
 	}

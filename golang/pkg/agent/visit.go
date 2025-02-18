@@ -39,9 +39,17 @@ func (a *agent) visitAllShipyards(ship *model.Ship) error {
 	if err := a.client.Navigate(ship, waypoints[0].Symbol, a.db); err != nil {
 		return fmt.Errorf("failed to navigate to %s: %w", waypoints[0].Symbol, err)
 	}
-	if _, err := a.client.GetShipyard(&waypoints[0], a.db); err != nil {
+	if _, err := a.client.GetShipyard(waypoints[0].Symbol, a.db); err != nil {
 		return fmt.Errorf("failed to get shipyard %s: %w", waypoints[0].Symbol, err)
 	}
-	// TODO get market data
+	// If this waypoint is also a marketplace, get its data
+	for _, trait := range waypoints[0].Traits {
+		if trait.Symbol == "MARKETPLACE" {
+			if _, err := a.client.GetMarket(waypoints[0].Symbol, a.db); err != nil {
+				return fmt.Errorf("failed to get market %s: %w", waypoints[0].Symbol, err)
+			}
+			break
+		}
+	}
 	return a.visitAllShipyards(ship)
 }
