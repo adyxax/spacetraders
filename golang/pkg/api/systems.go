@@ -8,10 +8,12 @@ import (
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/model"
 )
 
-func (c *Client) GetMarket(waypointSymbol string) (*model.Market, error) {
-	if market, err := c.db.LoadMarket(waypointSymbol); err == nil && market != nil {
-		// TODO check last updated time
-		return market, nil
+func (c *Client) GetMarket(waypointSymbol string, ships []model.Ship) (*model.Market, error) {
+	if !isThereAShipDockerAtWaypoint(waypointSymbol, ships) {
+		if market, err := c.db.LoadMarket(waypointSymbol); err == nil && market != nil {
+			// TODO check last updated time
+			return market, nil
+		}
 	}
 	systemSymbol := WaypointSymbolToSystemSymbol(waypointSymbol)
 	uriRef := url.URL{Path: path.Join("systems", systemSymbol, "waypoints", waypointSymbol, "market")}
@@ -25,11 +27,12 @@ func (c *Client) GetMarket(waypointSymbol string) (*model.Market, error) {
 	return &market, nil
 }
 
-func (c *Client) GetShipyard(waypointSymbol string) (*model.Shipyard, error) {
-	if shipyard, err := c.db.LoadShipyard(waypointSymbol); err == nil && shipyard != nil &&
-		(shipyard.Ships != nil) { // TODO || !IsThereAShipAtWaypoint(waypoint)) {
-		// TODO check last updated time
-		return shipyard, nil
+func (c *Client) GetShipyard(waypointSymbol string, ships []model.Ship) (*model.Shipyard, error) {
+	if !isThereAShipDockerAtWaypoint(waypointSymbol, ships) {
+		if shipyard, err := c.db.LoadShipyard(waypointSymbol); err == nil && shipyard != nil {
+			// TODO check last updated time
+			return shipyard, nil
+		}
 	}
 	systemSymbol := WaypointSymbolToSystemSymbol(waypointSymbol)
 	uriRef := url.URL{Path: path.Join("systems", systemSymbol, "waypoints", waypointSymbol, "shipyard")}
@@ -76,7 +79,7 @@ func (c *Client) GetWaypoint(waypointSymbol string) (*model.Waypoint, error) {
 }
 
 func (c *Client) ListWaypointsInSystem(systemSymbol string) ([]model.Waypoint, error) {
-	if waypoints, err := c.db.LoadWaypointsInSystem(systemSymbol); err == nil && waypoints != nil {
+	if waypoints, err := c.db.LoadWaypointsInSystem(systemSymbol); err == nil && len(waypoints) > 0 {
 		// TODO check last updated time
 		return waypoints, nil
 	}

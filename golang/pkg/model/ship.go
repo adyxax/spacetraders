@@ -3,14 +3,14 @@ package model
 type Ship struct {
 	Cargo    *Cargo    `json:"cargo"`
 	Cooldown *Cooldown `json:"cooldown"`
-	//// crew
-	//// engine
-	//// frame
+	// crew
+	// engine
+	// frame
 	Fuel *Fuel `json:"fuel"`
-	//// modules
-	//// mounts
+	// modules
+	// mounts
 	Nav *Nav `json:"nav"`
-	//// reactor
+	// reactor
 	//registration: Registration;
 	Symbol string `json:"symbol"`
 }

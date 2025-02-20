@@ -95,6 +95,7 @@ func (db *DB) Reset() error {
 	_, err := db.Exec(strings.Join([]string{
 		"DELETE FROM agents;",
 		"DELETE FROM markets;",
+		"DELETE FROM shipyards;",
 		"DELETE FROM systems;",
 		"DELETE FROM tokens;",
 		"DELETE FROM transactions;",

@@ -72,7 +72,7 @@ func (a *agent) runProcurement(contract *model.Contract, ship *model.Ship) error
 		}
 	}
 	// deliver the goods
-	if err := a.client.Navigate(ship, deliver.DestinationSymbol); err != nil {
+	if err := a.navigate(ship, deliver.DestinationSymbol); err != nil {
 		return fmt.Errorf("failed to navigate to %s: %w", deliver.DestinationSymbol, err)
 	}
 	if err := a.client.Deliver(contract, ship); err != nil {

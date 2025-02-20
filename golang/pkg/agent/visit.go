@@ -14,7 +14,7 @@ func (a *agent) visitAllShipyards(ship *model.Ship) error {
 	}
 	shipyards = slices.DeleteFunc(shipyards, func(shipyard model.Shipyard) bool {
 		// filter out shipyards for which we already have ships prices
-		if shipyard.Ships != nil {
+		if len(shipyard.Ships) > 0 {
 			return true
 		}
 		// filter out shipyards for which a ship is either present or inbound
@@ -36,16 +36,16 @@ func (a *agent) visitAllShipyards(ship *model.Ship) error {
 		waypoints = append(waypoints, *waypoint)
 	}
 	sortByDistanceFrom(waypoint, waypoints)
-	if err := a.client.Navigate(ship, waypoints[0].Symbol); err != nil {
+	if err := a.navigate(ship, waypoints[0].Symbol); err != nil {
 		return fmt.Errorf("failed to navigate to %s: %w", waypoints[0].Symbol, err)
 	}
-	if _, err := a.client.GetShipyard(waypoints[0].Symbol); err != nil {
+	if _, err := a.client.GetShipyard(waypoints[0].Symbol, a.ships); err != nil {
 		return fmt.Errorf("failed to get shipyard %s: %w", waypoints[0].Symbol, err)
 	}
 	// If this waypoint is also a marketplace, get its data
 	for _, trait := range waypoints[0].Traits {
 		if trait.Symbol == "MARKETPLACE" {
-			if _, err := a.client.GetMarket(waypoints[0].Symbol); err != nil {
+			if _, err := a.client.GetMarket(waypoints[0].Symbol, a.ships); err != nil {
 				return fmt.Errorf("failed to get market %s: %w", waypoints[0].Symbol, err)
 			}
 			break

@@ -3,11 +3,11 @@ package model
 import "time"
 
 type Shipyard struct {
-	ModificationFee int                   `json:"modificationFee"`
-	Symbol          string                `json:"symbol"`
-	ShipTypes       []CommonType          `json:"shipTypes"`
-	Transactions    []ShipyardTransaction `json:"transactions"`
-	Ships           []ShipyardShip        `json:"ships"`
+	ModificationFee int          `json:"modificationFee"`
+	Symbol          string       `json:"symbol"`
+	ShipTypes       []CommonType `json:"shipTypes"`
+	//Transactions    []ShipyardTransaction `json:"transactions"`
+	Ships []ShipyardShip `json:"ships"`
 }
 
 type ShipyardShip struct {

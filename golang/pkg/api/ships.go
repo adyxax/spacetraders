@@ -9,7 +9,7 @@ import (
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/model"
 )
 
-func (c *Client) dock(s *model.Ship) error {
+func (c *Client) Dock(s *model.Ship) error {
 	if s.Nav.Status == "DOCKED" {
 		return nil
 	}
@@ -41,8 +41,6 @@ func (c *Client) Navigate(s *model.Ship, waypointSymbol string) error {
 	if err := c.orbit(s); err != nil {
 		return fmt.Errorf("failed to orbit: %w", err)
 	}
-	// TODO shortest path
-	// TODO go refuel if necessary
 	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "navigate")}
 	type navigateRequest struct {
 		WaypointSymbol string `json:"waypointSymbol"`
@@ -96,7 +94,7 @@ func (c *Client) orbit(s *model.Ship) error {
 }
 
 func (c *Client) Purchase(s *model.Ship, cargoItem string, units int) error {
-	if err := c.dock(s); err != nil {
+	if err := c.Dock(s); err != nil {
 		return fmt.Errorf("failed to dock: %w", err)
 	}
 	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "purchase")}
@@ -123,11 +121,11 @@ func (c *Client) Purchase(s *model.Ship, cargoItem string, units int) error {
 	return nil
 }
 
-func (c *Client) refuel(s *model.Ship, db *database.DB) error {
+func (c *Client) Refuel(s *model.Ship) error {
 	if s.Fuel.Current == s.Fuel.Capacity {
 		return nil
 	}
-	if err := c.dock(s); err != nil {
+	if err := c.Dock(s); err != nil {
 		return fmt.Errorf("failed to dock: %w", err)
 	}
 	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "refuel")}
@@ -151,7 +149,7 @@ func (c *Client) refuel(s *model.Ship, db *database.DB) error {
 }
 
 func (c *Client) Sell(s *model.Ship, cargoItem string, units int) error {
-	if err := c.dock(s); err != nil {
+	if err := c.Dock(s); err != nil {
 		return fmt.Errorf("failed to dock: %w", err)
 	}
 	uriRef := url.URL{Path: path.Join("my/ships", s.Symbol, "sell")}

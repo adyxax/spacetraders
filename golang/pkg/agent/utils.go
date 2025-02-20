@@ -47,7 +47,7 @@ func (a *agent) listMarketsInSystem(systemSymbol string) ([]model.Market, error)
 	}
 	var markets []model.Market
 	for i := range waypoints {
-		market, err := a.client.GetMarket(waypoints[i].Symbol)
+		market, err := a.client.GetMarket(waypoints[i].Symbol, a.ships)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get market %s: %w", waypoints[i].Symbol, err)
 		}
@@ -63,7 +63,7 @@ func (a *agent) listShipyardsInSystem(systemSymbol string) ([]model.Shipyard, er
 	}
 	var shipyards []model.Shipyard
 	for i := range waypoints {
-		shipyard, err := a.client.GetShipyard(waypoints[i].Symbol)
+		shipyard, err := a.client.GetShipyard(waypoints[i].Symbol, a.ships)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get shipyard %s: %w", waypoints[i].Symbol, err)
 		}
@@ -86,6 +86,9 @@ func (a *agent) sendShipToShipyardThatSells(ship *model.Ship, shipType string) e
 		}
 		return true
 	})
+	if len(shipyards) == 0 {
+		return fmt.Errorf("no shipyards sells that ship type")
+	}
 	// sort by cheapest
 	slices.SortFunc(shipyards, func(a, b model.Shipyard) int {
 		aPrice := math.MaxInt
@@ -104,7 +107,7 @@ func (a *agent) sendShipToShipyardThatSells(ship *model.Ship, shipType string) e
 		}
 		return cmp.Compare(aPrice, bPrice)
 	})
-	if err := a.client.Navigate(ship, shipyards[0].Symbol); err != nil {
+	if err := a.navigate(ship, shipyards[0].Symbol); err != nil {
 		return fmt.Errorf("failed to navigate to %s: %w", shipyards[0].Symbol, err)
 	}
 	return nil

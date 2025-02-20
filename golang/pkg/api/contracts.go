@@ -30,6 +30,9 @@ func (c *Client) Accept(contract *model.Contract) error {
 }
 
 func (c *Client) Deliver(contract *model.Contract, ship *model.Ship) error {
+	if err := c.Dock(ship); err != nil {
+		return fmt.Errorf("failed to dock: %w", err)
+	}
 	deliver := contract.Terms.Deliver[0]
 	var units int
 	for _, cargoItem := range ship.Cargo.Inventory {

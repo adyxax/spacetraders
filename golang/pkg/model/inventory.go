@@ -1,6 +1,6 @@
 package model
 
-type Inventory struct {
+type InventoryItem struct {
 	//Description string `json:"description"`
 	Units int `json:"units"`
 	//Name        string `json:"name"`

@@ -36,7 +36,7 @@ func (a *agent) buyTradeGood(ship *model.Ship, tradeGoodToBuy string) error {
 	// find the closest place to buy TODO
 	waypoint, err := a.client.GetWaypoint(ship.Nav.WaypointSymbol)
 	if err != nil {
-		return fmt.Errorf("failed to get nav waypoint %s: %w", ship.Nav.WaypointSymbol, err)
+		return fmt.Errorf("failed to get waypoint %s: %w", ship.Nav.WaypointSymbol, err)
 	}
 	waypoints := make([]model.Waypoint, 0)
 	for i := range markets {
@@ -48,10 +48,13 @@ func (a *agent) buyTradeGood(ship *model.Ship, tradeGoodToBuy string) error {
 	}
 	sortByDistanceFrom(waypoint, waypoints)
 	// Go there and refresh our market data
-	if err := a.client.Navigate(ship, waypoints[0].Symbol); err != nil {
+	if err := a.navigate(ship, waypoints[0].Symbol); err != nil {
 		return fmt.Errorf("failed to navigate to %s: %w", waypoints[0].Symbol, err)
 	}
-	market, err := a.client.GetMarket(waypoints[0].Symbol)
+	if err := a.client.Dock(ship); err != nil {
+		return fmt.Errorf("failed to dock: %w", err)
+	}
+	market, err := a.client.GetMarket(waypoints[0].Symbol, a.ships)
 	if err != nil {
 		return fmt.Errorf("failed to get market %s: %w", waypoints[0].Symbol, err)
 	}
@@ -72,11 +75,13 @@ func (a *agent) buyTradeGood(ship *model.Ship, tradeGoodToBuy string) error {
 
 func (a *agent) sellEverythingExcept(ship *model.Ship, keep string) error {
 	// First lets see what we need to sell
-	cargo := ship.Cargo.Inventory
-	cargo = slices.DeleteFunc(cargo, func(inventory model.Inventory) bool {
-		return inventory.Symbol == keep
-	})
-	if len(cargo) == 0 {
+	var inventoryItems []model.InventoryItem
+	for _, item := range ship.Cargo.Inventory {
+		if item.Symbol != keep {
+			inventoryItems = append(inventoryItems, item)
+		}
+	}
+	if len(inventoryItems) == 0 {
 		return nil
 	}
 	// list markets would buy our goods
@@ -85,9 +90,9 @@ func (a *agent) sellEverythingExcept(ship *model.Ship, keep string) error {
 		return fmt.Errorf("failed to list markets in system %s: %w", ship.Nav.SystemSymbol, err)
 	}
 	markets = slices.DeleteFunc(markets, func(market model.Market) bool {
-		for _, item := range market.Imports {
-			for _, cargoItem := range cargo {
-				if item.Symbol == cargoItem.Symbol {
+		for _, marketItem := range market.Imports {
+			for _, inventoryItem := range inventoryItems {
+				if marketItem.Symbol == inventoryItem.Symbol {
 					return false
 				}
 			}
@@ -112,15 +117,18 @@ func (a *agent) sellEverythingExcept(ship *model.Ship, keep string) error {
 	}
 	sortByDistanceFrom(waypoint, waypoints)
 	// Go there and refresh our market data
-	if err := a.client.Navigate(ship, waypoints[0].Symbol); err != nil {
+	if err := a.navigate(ship, waypoints[0].Symbol); err != nil {
 		return fmt.Errorf("failed to navigate to %s: %w", waypoints[0].Symbol, err)
 	}
-	market, err := a.client.GetMarket(waypoints[0].Symbol)
+	if err := a.client.Dock(ship); err != nil {
+		return fmt.Errorf("failed to dock: %w", err)
+	}
+	market, err := a.client.GetMarket(waypoints[0].Symbol, a.ships)
 	if err != nil {
 		return fmt.Errorf("failed to get market %s: %w", waypoints[0].Symbol, err)
 	}
 	// sell everything we can
-	for _, cargoItem := range cargo {
+	for _, cargoItem := range inventoryItems {
 		units := cargoItem.Units
 		for _, tradeGood := range market.TradeGoods {
 			if tradeGood.Type == "IMPORT" && tradeGood.Symbol == cargoItem.Symbol {
