@@ -34,13 +34,13 @@ func (a *agent) buyTradeGood(ship *model.Ship, tradeGoodToBuy string) error {
 		return &TradeGoodNotFoundError{}
 	}
 	// find the closest place to buy TODO
-	waypoint, err := a.client.GetWaypoint(ship.Nav.WaypointSymbol, a.db)
+	waypoint, err := a.client.GetWaypoint(ship.Nav.WaypointSymbol)
 	if err != nil {
 		return fmt.Errorf("failed to get nav waypoint %s: %w", ship.Nav.WaypointSymbol, err)
 	}
 	waypoints := make([]model.Waypoint, 0)
 	for i := range markets {
-		waypoint, err := a.client.GetWaypoint(markets[i].Symbol, a.db)
+		waypoint, err := a.client.GetWaypoint(markets[i].Symbol)
 		if err != nil {
 			return fmt.Errorf("failed to get waypoint %s: %w", markets[i].Symbol, err)
 		}
@@ -48,10 +48,10 @@ func (a *agent) buyTradeGood(ship *model.Ship, tradeGoodToBuy string) error {
 	}
 	sortByDistanceFrom(waypoint, waypoints)
 	// Go there and refresh our market data
-	if err := a.client.Navigate(ship, waypoints[0].Symbol, a.db); err != nil {
+	if err := a.client.Navigate(ship, waypoints[0].Symbol); err != nil {
 		return fmt.Errorf("failed to navigate to %s: %w", waypoints[0].Symbol, err)
 	}
-	market, err := a.client.GetMarket(waypoints[0].Symbol, a.db)
+	market, err := a.client.GetMarket(waypoints[0].Symbol)
 	if err != nil {
 		return fmt.Errorf("failed to get market %s: %w", waypoints[0].Symbol, err)
 	}
@@ -60,7 +60,7 @@ func (a *agent) buyTradeGood(ship *model.Ship, tradeGoodToBuy string) error {
 		if tradeGood.Type == "EXPORT" && tradeGood.Symbol == tradeGoodToBuy {
 			for ship.Cargo.Units < ship.Cargo.Capacity {
 				increment := min(ship.Cargo.Capacity-ship.Cargo.Units, tradeGood.TradeVolume)
-				if err := a.client.Purchase(ship, tradeGoodToBuy, increment, a.db); err != nil {
+				if err := a.client.Purchase(ship, tradeGoodToBuy, increment); err != nil {
 					return fmt.Errorf("failed to purchase %d units of %s: %w", increment, tradeGoodToBuy, err)
 				}
 			}
@@ -98,13 +98,13 @@ func (a *agent) sellEverythingExcept(ship *model.Ship, keep string) error {
 		return nil
 	}
 	// find the closest place to sell something TODO
-	waypoint, err := a.client.GetWaypoint(ship.Nav.WaypointSymbol, a.db)
+	waypoint, err := a.client.GetWaypoint(ship.Nav.WaypointSymbol)
 	if err != nil {
 		return fmt.Errorf("failed to get nav waypoint %s: %w", ship.Nav.WaypointSymbol, err)
 	}
 	waypoints := make([]model.Waypoint, 0)
 	for i := range markets {
-		waypoint, err := a.client.GetWaypoint(markets[i].Symbol, a.db)
+		waypoint, err := a.client.GetWaypoint(markets[i].Symbol)
 		if err != nil {
 			return fmt.Errorf("failed to get waypoint %s: %w", markets[i].Symbol, err)
 		}
@@ -112,10 +112,10 @@ func (a *agent) sellEverythingExcept(ship *model.Ship, keep string) error {
 	}
 	sortByDistanceFrom(waypoint, waypoints)
 	// Go there and refresh our market data
-	if err := a.client.Navigate(ship, waypoints[0].Symbol, a.db); err != nil {
+	if err := a.client.Navigate(ship, waypoints[0].Symbol); err != nil {
 		return fmt.Errorf("failed to navigate to %s: %w", waypoints[0].Symbol, err)
 	}
-	market, err := a.client.GetMarket(waypoints[0].Symbol, a.db)
+	market, err := a.client.GetMarket(waypoints[0].Symbol)
 	if err != nil {
 		return fmt.Errorf("failed to get market %s: %w", waypoints[0].Symbol, err)
 	}
@@ -126,7 +126,7 @@ func (a *agent) sellEverythingExcept(ship *model.Ship, keep string) error {
 			if tradeGood.Type == "IMPORT" && tradeGood.Symbol == cargoItem.Symbol {
 				for units > 0 {
 					increment := min(units, tradeGood.TradeVolume)
-					if err := a.client.Sell(ship, cargoItem.Symbol, increment, a.db); err != nil {
+					if err := a.client.Sell(ship, cargoItem.Symbol, increment); err != nil {
 						return fmt.Errorf("failed to sell %d units of %s: %w", units, cargoItem.Symbol, err)
 					}
 					units = units - increment

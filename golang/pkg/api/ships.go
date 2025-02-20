@@ -6,7 +6,6 @@ import (
 	"path"
 	"time"
 
-	"git.adyxax.org/adyxax/spacetraders/golang/pkg/database"
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/model"
 )
 
@@ -35,7 +34,7 @@ func (c *Client) MyShips() ([]model.Ship, error) {
 	return ships, nil
 }
 
-func (c *Client) Navigate(s *model.Ship, waypointSymbol string, db *database.DB) error {
+func (c *Client) Navigate(s *model.Ship, waypointSymbol string) error {
 	if s.Nav.WaypointSymbol == waypointSymbol {
 		return nil
 	}
@@ -96,7 +95,7 @@ func (c *Client) orbit(s *model.Ship) error {
 	return nil
 }
 
-func (c *Client) Purchase(s *model.Ship, cargoItem string, units int, db *database.DB) error {
+func (c *Client) Purchase(s *model.Ship, cargoItem string, units int) error {
 	if err := c.dock(s); err != nil {
 		return fmt.Errorf("failed to dock: %w", err)
 	}
@@ -114,11 +113,11 @@ func (c *Client) Purchase(s *model.Ship, cargoItem string, units int, db *databa
 	if err := c.Send("POST", &uriRef, purchaseRequest{cargoItem, units}, &response); err != nil {
 		return fmt.Errorf("failed API request: %w", err)
 	}
-	if err := db.SaveAgent(response.Agent); err != nil {
+	if err := c.db.SaveAgent(response.Agent); err != nil {
 		return fmt.Errorf("failed to save agent: %w", err)
 	}
 	s.Cargo = response.Cargo
-	if err := db.AppendTransaction(response.Transaction); err != nil {
+	if err := c.db.AppendTransaction(response.Transaction); err != nil {
 		return fmt.Errorf("failed to append transaction: %w", err)
 	}
 	return nil
@@ -141,17 +140,17 @@ func (c *Client) refuel(s *model.Ship, db *database.DB) error {
 	if err := c.Send("POST", &uriRef, nil, &response); err != nil {
 		return fmt.Errorf("failed API request: %w", err)
 	}
-	if err := db.SaveAgent(response.Agent); err != nil {
+	if err := c.db.SaveAgent(response.Agent); err != nil {
 		return fmt.Errorf("failed to save agent: %w", err)
 	}
 	s.Fuel = response.Fuel
-	if err := db.AppendTransaction(response.Transaction); err != nil {
+	if err := c.db.AppendTransaction(response.Transaction); err != nil {
 		return fmt.Errorf("failed to append transaction: %w", err)
 	}
 	return nil
 }
 
-func (c *Client) Sell(s *model.Ship, cargoItem string, units int, db *database.DB) error {
+func (c *Client) Sell(s *model.Ship, cargoItem string, units int) error {
 	if err := c.dock(s); err != nil {
 		return fmt.Errorf("failed to dock: %w", err)
 	}
@@ -169,11 +168,11 @@ func (c *Client) Sell(s *model.Ship, cargoItem string, units int, db *database.D
 	if err := c.Send("POST", &uriRef, sellRequest{cargoItem, units}, &response); err != nil {
 		return fmt.Errorf("failed API request: %w", err)
 	}
-	if err := db.SaveAgent(response.Agent); err != nil {
+	if err := c.db.SaveAgent(response.Agent); err != nil {
 		return fmt.Errorf("failed to save agent: %w", err)
 	}
 	s.Cargo = response.Cargo
-	if err := db.AppendTransaction(response.Transaction); err != nil {
+	if err := c.db.AppendTransaction(response.Transaction); err != nil {
 		return fmt.Errorf("failed to append transaction: %w", err)
 	}
 	return nil

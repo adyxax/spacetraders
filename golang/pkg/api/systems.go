@@ -5,12 +5,11 @@ import (
 	"net/url"
 	"path"
 
-	"git.adyxax.org/adyxax/spacetraders/golang/pkg/database"
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/model"
 )
 
-func (c *Client) GetMarket(waypointSymbol string, db *database.DB) (*model.Market, error) {
-	if market, err := db.LoadMarket(waypointSymbol); err == nil && market != nil {
+func (c *Client) GetMarket(waypointSymbol string) (*model.Market, error) {
+	if market, err := c.db.LoadMarket(waypointSymbol); err == nil && market != nil {
 		// TODO check last updated time
 		return market, nil
 	}
@@ -20,14 +19,14 @@ func (c *Client) GetMarket(waypointSymbol string, db *database.DB) (*model.Marke
 	if err := c.Send("GET", &uriRef, nil, &market); err != nil {
 		return nil, fmt.Errorf("failed API request: %w", err)
 	}
-	if err := db.SaveMarket(&market); err != nil {
+	if err := c.db.SaveMarket(&market); err != nil {
 		return nil, fmt.Errorf("failed to save market %s: %w", market.Symbol, err)
 	}
 	return &market, nil
 }
 
-func (c *Client) GetShipyard(waypointSymbol string, db *database.DB) (*model.Shipyard, error) {
-	if shipyard, err := db.LoadShipyard(waypointSymbol); err == nil && shipyard != nil &&
+func (c *Client) GetShipyard(waypointSymbol string) (*model.Shipyard, error) {
+	if shipyard, err := c.db.LoadShipyard(waypointSymbol); err == nil && shipyard != nil &&
 		(shipyard.Ships != nil) { // TODO || !IsThereAShipAtWaypoint(waypoint)) {
 		// TODO check last updated time
 		return shipyard, nil
@@ -38,14 +37,14 @@ func (c *Client) GetShipyard(waypointSymbol string, db *database.DB) (*model.Shi
 	if err := c.Send("GET", &uriRef, nil, &shipyard); err != nil {
 		return nil, fmt.Errorf("failed API request: %w", err)
 	}
-	if err := db.SaveShipyard(&shipyard); err != nil {
+	if err := c.db.SaveShipyard(&shipyard); err != nil {
 		return nil, fmt.Errorf("failed to save shipyard %s: %w", shipyard.Symbol, err)
 	}
 	return &shipyard, nil
 }
 
-func (c *Client) GetSystem(systemSymbol string, db *database.DB) (*model.System, error) {
-	if system, err := db.LoadSystem(systemSymbol); err == nil && system != nil {
+func (c *Client) GetSystem(systemSymbol string) (*model.System, error) {
+	if system, err := c.db.LoadSystem(systemSymbol); err == nil && system != nil {
 		return system, nil
 	}
 	uriRef := url.URL{Path: path.Join("systems", systemSymbol)}
@@ -53,14 +52,14 @@ func (c *Client) GetSystem(systemSymbol string, db *database.DB) (*model.System,
 	if err := c.Send("GET", &uriRef, nil, &system); err != nil {
 		return nil, fmt.Errorf("failed API request: %w", err)
 	}
-	if err := db.SaveSystem(&system); err != nil {
+	if err := c.db.SaveSystem(&system); err != nil {
 		return nil, fmt.Errorf("failed to save system %s: %w", system.Symbol, err)
 	}
 	return &system, nil
 }
 
-func (c *Client) GetWaypoint(waypointSymbol string, db *database.DB) (*model.Waypoint, error) {
-	if waypoint, err := db.LoadWaypoint(waypointSymbol); err == nil && waypoint != nil {
+func (c *Client) GetWaypoint(waypointSymbol string) (*model.Waypoint, error) {
+	if waypoint, err := c.db.LoadWaypoint(waypointSymbol); err == nil && waypoint != nil {
 		// TODO check last updated time
 		return waypoint, nil
 	}
@@ -70,14 +69,14 @@ func (c *Client) GetWaypoint(waypointSymbol string, db *database.DB) (*model.Way
 	if err := c.Send("GET", &uriRef, nil, &waypoint); err != nil {
 		return nil, fmt.Errorf("failed API request: %w", err)
 	}
-	if err := db.SaveWaypoint(&waypoint); err != nil {
+	if err := c.db.SaveWaypoint(&waypoint); err != nil {
 		return nil, fmt.Errorf("failed to save waypoint %s: %w", waypoint.Symbol, err)
 	}
 	return &waypoint, nil
 }
 
-func (c *Client) ListWaypointsInSystem(systemSymbol string, db *database.DB) ([]model.Waypoint, error) {
-	if waypoints, err := db.LoadWaypointsInSystem(systemSymbol); err == nil && waypoints != nil {
+func (c *Client) ListWaypointsInSystem(systemSymbol string) ([]model.Waypoint, error) {
+	if waypoints, err := c.db.LoadWaypointsInSystem(systemSymbol); err == nil && waypoints != nil {
 		// TODO check last updated time
 		return waypoints, nil
 	}
@@ -87,7 +86,7 @@ func (c *Client) ListWaypointsInSystem(systemSymbol string, db *database.DB) ([]
 		return nil, fmt.Errorf("failed API request: %w", err)
 	}
 	for _, waypoint := range waypoints {
-		if err := db.SaveWaypoint(&waypoint); err != nil {
+		if err := c.db.SaveWaypoint(&waypoint); err != nil {
 			return nil, fmt.Errorf("failed to save waypoint %s: %w", waypoint.Symbol, err)
 		}
 	}

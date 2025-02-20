@@ -36,7 +36,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	apiClient := api.NewClient(ctx)
+	apiClient := api.NewClient(ctx, db)
 	defer apiClient.Close()
 	if err := agent.Run(
 		apiClient,

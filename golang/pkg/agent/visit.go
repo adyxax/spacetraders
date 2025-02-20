@@ -23,29 +23,29 @@ func (a *agent) visitAllShipyards(ship *model.Ship) error {
 	if len(shipyards) == 0 {
 		return nil
 	}
-	waypoint, err := a.client.GetWaypoint(ship.Nav.WaypointSymbol, a.db)
+	waypoint, err := a.client.GetWaypoint(ship.Nav.WaypointSymbol)
 	if err != nil {
 		return fmt.Errorf("failed to get nav waypoint %s: %w", ship.Nav.WaypointSymbol, err)
 	}
 	waypoints := make([]model.Waypoint, 0)
 	for i := range shipyards {
-		waypoint, err := a.client.GetWaypoint(shipyards[i].Symbol, a.db)
+		waypoint, err := a.client.GetWaypoint(shipyards[i].Symbol)
 		if err != nil {
 			return fmt.Errorf("failed to get waypoint %s: %w", shipyards[i].Symbol, err)
 		}
 		waypoints = append(waypoints, *waypoint)
 	}
 	sortByDistanceFrom(waypoint, waypoints)
-	if err := a.client.Navigate(ship, waypoints[0].Symbol, a.db); err != nil {
+	if err := a.client.Navigate(ship, waypoints[0].Symbol); err != nil {
 		return fmt.Errorf("failed to navigate to %s: %w", waypoints[0].Symbol, err)
 	}
-	if _, err := a.client.GetShipyard(waypoints[0].Symbol, a.db); err != nil {
+	if _, err := a.client.GetShipyard(waypoints[0].Symbol); err != nil {
 		return fmt.Errorf("failed to get shipyard %s: %w", waypoints[0].Symbol, err)
 	}
 	// If this waypoint is also a marketplace, get its data
 	for _, trait := range waypoints[0].Traits {
 		if trait.Symbol == "MARKETPLACE" {
-			if _, err := a.client.GetMarket(waypoints[0].Symbol, a.db); err != nil {
+			if _, err := a.client.GetMarket(waypoints[0].Symbol); err != nil {
 				return fmt.Errorf("failed to get market %s: %w", waypoints[0].Symbol, err)
 			}
 			break

@@ -5,11 +5,10 @@ import (
 	"net/url"
 	"path"
 
-	"git.adyxax.org/adyxax/spacetraders/golang/pkg/database"
 	"git.adyxax.org/adyxax/spacetraders/golang/pkg/model"
 )
 
-func (c *Client) Accept(contract *model.Contract, db *database.DB) error {
+func (c *Client) Accept(contract *model.Contract) error {
 	if contract.Accepted {
 		return nil
 	}
@@ -22,7 +21,7 @@ func (c *Client) Accept(contract *model.Contract, db *database.DB) error {
 	if err := c.Send("POST", &uriRef, nil, &response); err != nil {
 		return fmt.Errorf("failed API request: %w", err)
 	}
-	if err := db.SaveAgent(response.Agent); err != nil {
+	if err := c.db.SaveAgent(response.Agent); err != nil {
 		return fmt.Errorf("failed to save agent: %w", err)
 	}
 	contract.Accepted = response.Contract.Accepted
@@ -30,7 +29,7 @@ func (c *Client) Accept(contract *model.Contract, db *database.DB) error {
 	return nil
 }
 
-func (c *Client) Deliver(contract *model.Contract, ship *model.Ship, db *database.DB) error {
+func (c *Client) Deliver(contract *model.Contract, ship *model.Ship) error {
 	deliver := contract.Terms.Deliver[0]
 	var units int
 	for _, cargoItem := range ship.Cargo.Inventory {
@@ -58,7 +57,7 @@ func (c *Client) Deliver(contract *model.Contract, ship *model.Ship, db *databas
 	return nil
 }
 
-func (c *Client) Fulfill(contract *model.Contract, db *database.DB) error {
+func (c *Client) Fulfill(contract *model.Contract) error {
 	if contract.Fulfilled {
 		return nil
 	}
@@ -71,7 +70,7 @@ func (c *Client) Fulfill(contract *model.Contract, db *database.DB) error {
 	if err := c.Send("POST", &uriRef, nil, &response); err != nil {
 		return fmt.Errorf("failed API request: %w", err)
 	}
-	if err := db.SaveAgent(response.Agent); err != nil {
+	if err := c.db.SaveAgent(response.Agent); err != nil {
 		return fmt.Errorf("failed to save agent: %w", err)
 	}
 	contract.Fulfilled = response.Contract.Fulfilled

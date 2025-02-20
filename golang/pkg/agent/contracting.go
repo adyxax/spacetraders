@@ -41,7 +41,7 @@ func (a *agent) autoContracting(ship *model.Ship) {
 }
 
 func (a *agent) runContract(contract *model.Contract, ship *model.Ship) error {
-	if err := a.client.Accept(contract, a.db); err != nil {
+	if err := a.client.Accept(contract); err != nil {
 		return fmt.Errorf("failed to accept contract: %w", err)
 	}
 	//slog.Info("running contract", "contract", contract, "ship", ship.Symbol)
@@ -72,15 +72,15 @@ func (a *agent) runProcurement(contract *model.Contract, ship *model.Ship) error
 		}
 	}
 	// deliver the goods
-	if err := a.client.Navigate(ship, deliver.DestinationSymbol, a.db); err != nil {
+	if err := a.client.Navigate(ship, deliver.DestinationSymbol); err != nil {
 		return fmt.Errorf("failed to navigate to %s: %w", deliver.DestinationSymbol, err)
 	}
-	if err := a.client.Deliver(contract, ship, a.db); err != nil {
+	if err := a.client.Deliver(contract, ship); err != nil {
 		return fmt.Errorf("failed to deliver: %w", err)
 	}
 	deliver = contract.Terms.Deliver[0]
 	if deliver.UnitsRequired == deliver.UnitsFulfilled {
-		if err := a.client.Fulfill(contract, a.db); err != nil {
+		if err := a.client.Fulfill(contract); err != nil {
 			return fmt.Errorf("failed to fulfill: %w", err)
 		}
 		return nil

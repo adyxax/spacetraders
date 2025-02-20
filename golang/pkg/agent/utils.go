@@ -25,7 +25,7 @@ func (a *agent) isThereAShipAtWaypoint(waypointSymbol string) bool {
 }
 
 func (a *agent) listWaypointsInSystemWithTrait(systemSymbol string, trait string) ([]model.Waypoint, error) {
-	waypoints, err := a.client.ListWaypointsInSystem(systemSymbol, a.db)
+	waypoints, err := a.client.ListWaypointsInSystem(systemSymbol)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list waypoints: %w", err)
 	}
@@ -47,7 +47,7 @@ func (a *agent) listMarketsInSystem(systemSymbol string) ([]model.Market, error)
 	}
 	var markets []model.Market
 	for i := range waypoints {
-		market, err := a.client.GetMarket(waypoints[i].Symbol, a.db)
+		market, err := a.client.GetMarket(waypoints[i].Symbol)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get market %s: %w", waypoints[i].Symbol, err)
 		}
@@ -63,7 +63,7 @@ func (a *agent) listShipyardsInSystem(systemSymbol string) ([]model.Shipyard, er
 	}
 	var shipyards []model.Shipyard
 	for i := range waypoints {
-		shipyard, err := a.client.GetShipyard(waypoints[i].Symbol, a.db)
+		shipyard, err := a.client.GetShipyard(waypoints[i].Symbol)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get shipyard %s: %w", waypoints[i].Symbol, err)
 		}
@@ -104,7 +104,7 @@ func (a *agent) sendShipToShipyardThatSells(ship *model.Ship, shipType string) e
 		}
 		return cmp.Compare(aPrice, bPrice)
 	})
-	if err := a.client.Navigate(ship, shipyards[0].Symbol, a.db); err != nil {
+	if err := a.client.Navigate(ship, shipyards[0].Symbol); err != nil {
 		return fmt.Errorf("failed to navigate to %s: %w", shipyards[0].Symbol, err)
 	}
 	return nil
