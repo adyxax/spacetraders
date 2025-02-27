@@ -4,6 +4,6 @@ type Register struct {
 	Agent *Agent `json:"agent"`
 	//contract
 	//faction
-	Ship  *Ship  `json:"ship"`
+	Ships []Ship `json:"ships"`
 	Token string `json:"token"`
 }
