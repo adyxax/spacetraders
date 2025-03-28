@@ -196,7 +196,7 @@ func (c *Client) sendOne(method string, uri *url.URL, payload any) (*APIMessage,
 		select {
 		case <-c.ctx.Done():
 			return nil, fmt.Errorf("failed to sendOne: ctx cancelled")
-		case <-time.After(e.RetryAfter.Duration() * time.Second):
+		case <-time.After(time.Until(e.Reset)):
 		}
 		return c.sendOne(method, uri, payload)
 	}

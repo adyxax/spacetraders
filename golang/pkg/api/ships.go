@@ -59,7 +59,7 @@ func (c *Client) Navigate(s *model.Ship, waypointSymbol string) error {
 	select {
 	case <-c.ctx.Done():
 		return fmt.Errorf("failed: context cancelled")
-	case <-time.After(s.Nav.Route.Arrival.Sub(time.Now())):
+	case <-time.After(time.Until(s.Nav.Route.Arrival)):
 	}
 	s.Nav.Status = "IN_ORBIT"
 	return nil

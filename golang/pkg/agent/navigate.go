@@ -55,10 +55,7 @@ func (a *agent) shortestPath(origin string, destination string, fuelCapacity int
 		unvisited[waypoints[i].Symbol] = &waypoints[i]
 		// We need to know which waypoints allow refueling
 		waypoints[i].Traits = slices.DeleteFunc(waypoints[i].Traits, func(trait model.Common) bool {
-			if trait.Symbol == "MARKETPLACE" {
-				return false
-			}
-			return true
+			return trait.Symbol != "MARKETPLACE"
 		})
 		if len(waypoints[i].Traits) > 0 {
 			market, err := a.client.GetMarket(symbol, a.ships)
@@ -66,16 +63,10 @@ func (a *agent) shortestPath(origin string, destination string, fuelCapacity int
 				return nil, 0, fmt.Errorf("failed to get market %s: %w", symbol, err)
 			}
 			market.Exchange = slices.DeleteFunc(market.Exchange, func(item model.Common) bool {
-				if item.Symbol == "FUEL" {
-					return false
-				}
-				return true
+				return item.Symbol != "FUEL"
 			})
 			market.Exports = slices.DeleteFunc(market.Exports, func(item model.Common) bool {
-				if item.Symbol == "FUEL" {
-					return false
-				}
-				return true
+				return item.Symbol != "FUEL"
 			})
 			if len(market.Exchange) == 0 && len(market.Exports) == 0 {
 				waypoints[i].Traits = nil

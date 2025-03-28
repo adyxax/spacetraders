@@ -19,7 +19,7 @@ type RateLimitError struct {
 func decodeRateLimitError(msg json.RawMessage) RateLimitError {
 	var e RateLimitError
 	if err := json.Unmarshal(msg, &e); err != nil {
-		panic(fmt.Errorf("Failed to decode iapi error code 429 RateLimitError: %v, %w", msg, err))
+		panic(fmt.Errorf("failed to decode iapi error code 429 RateLimitError: %v, %w", msg, err))
 	}
 	return e
 }
@@ -36,7 +36,7 @@ type ShipInTransitError struct {
 func decodeShipInTransitError(msg json.RawMessage) ShipInTransitError {
 	var e ShipInTransitError
 	if err := json.Unmarshal(msg, &e); err != nil {
-		panic(fmt.Errorf("Failed to decode api error code 4214 ShipInTransitError: %v, %w", msg, err))
+		panic(fmt.Errorf("failed to decode api error code 4214 ShipInTransitError: %v, %w", msg, err))
 	}
 	return e
 }
