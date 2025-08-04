@@ -21,7 +21,7 @@ main = do
       (Right _) <- myShips
       -- Testing
       ships <- getShips
-      let cmdShip = head ships
+      let (cmdShip:_) = ships
       t <- refuel cmdShip
       liftIO . print $ case t of
         (Right r) -> "response: " ++ show r

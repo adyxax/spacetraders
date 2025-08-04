@@ -43,16 +43,16 @@ int2ByteString :: Int -> B.ByteString
 int2ByteString = B.pack . map B.c2w . show
 
 one_ :: (FromJSON b, HasDatabaseConn env, MonadReader env m, MonadIO m) => S.Query -> m b
-one_ q = head <$> query_ q
+one_ q = (\(h:_) -> h) <$> query_ q
 
 query :: (FromJSON b, HasDatabaseConn env, MonadReader env m, MonadIO m, S.ToRow t) => S.Query -> t -> m [b]
 query q t = do
   env <- ask
   ret <- liftIO $ S.query (getConn env) q t
-  return $ mapMaybe (decodeText . head) ret
+  return $ mapMaybe (\(h:_) -> decodeText h) ret
 
 query_ :: (FromJSON b, HasDatabaseConn env, MonadReader env m, MonadIO m) => S.Query -> m [b]
 query_ q = do
   env <- ask
   ret <- liftIO $ S.query_ (getConn env) q
-  return $ mapMaybe (decodeText . head) ret
+  return $ mapMaybe (\(h:_) -> decodeText h) ret

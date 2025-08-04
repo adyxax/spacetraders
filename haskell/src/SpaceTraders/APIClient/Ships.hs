@@ -20,7 +20,9 @@ import           SpaceTraders.Model.Fuel
 import           SpaceTraders.Model.Nav
 import           SpaceTraders.Model.Ship
 
-newtype NavMessage = NavMessage { nav :: Nav } deriving (FromJSON, Generic, Show)
+newtype NavMessage = NavMessage { nav :: Nav }
+  deriving stock (Generic, Show)
+  deriving newtype (FromJSON)
 
 dock :: Ship -> SpaceTradersT (APIResponse Ship)
 dock ship = if isDocked ship then pure (Right ship) else dock'
