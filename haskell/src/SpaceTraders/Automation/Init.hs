@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module SpaceTraders.Automation.Init
   ( deinitST
   , initST

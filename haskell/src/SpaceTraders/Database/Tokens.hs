@@ -1,5 +1,3 @@
-{-# LANGUAGE OverloadedStrings #-}
-
 module SpaceTraders.Database.Tokens
   ( addToken
   , getToken

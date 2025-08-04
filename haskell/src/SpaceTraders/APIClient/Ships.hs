@@ -1,7 +1,3 @@
-{-# LANGUAGE DeriveAnyClass    #-}
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE OverloadedStrings #-}
-
 module SpaceTraders.APIClient.Ships
   ( dock
   , myShips

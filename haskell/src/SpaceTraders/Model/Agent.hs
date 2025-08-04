@@ -1,6 +1,3 @@
-{-# LANGUAGE DeriveAnyClass #-}
-{-# LANGUAGE DeriveGeneric  #-}
-
 module SpaceTraders.Model.Agent
   ( Agent(..)
   ) where

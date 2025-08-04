@@ -1,6 +1,3 @@
-{-# LANGUAGE DeriveGeneric     #-}
-{-# LANGUAGE OverloadedStrings #-}
-
 module SpaceTraders.Model.Waypoint
   ( Waypoint(..)
   ) where
