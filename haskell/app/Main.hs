@@ -5,7 +5,6 @@ import           SpaceTraders.APIClient.Agent
 import           SpaceTraders.APIClient.Contracts
 import           SpaceTraders.APIClient.Ships
 import           SpaceTraders.Automation.Init
-import           SpaceTraders.Database.Ships
 
 main :: IO ()
 main = do
@@ -18,10 +17,8 @@ main = do
       -- refresh our core objects
       (Right _) <- myAgent
       (Right _) <- myContracts
-      (Right _) <- myShips
+      (Right (cmdShip:_)) <- myShips
       -- Testing
-      ships <- getShips
-      let (cmdShip:_) = ships
       t <- refuel cmdShip
       liftIO . print $ case t of
         (Right r) -> "response: " ++ show r

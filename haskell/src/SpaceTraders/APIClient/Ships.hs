@@ -14,7 +14,6 @@ import           SpaceTraders
 import           SpaceTraders.APIClient.Client
 import           SpaceTraders.APIClient.Pagination
 import           SpaceTraders.Database.Agents
-import           SpaceTraders.Database.Ships
 import qualified SpaceTraders.Model.Agent
 import           SpaceTraders.Model.Fuel
 import           SpaceTraders.Model.Nav
@@ -34,22 +33,20 @@ dock ship = if isDocked ship then pure (Right ship) else dock'
         Left e -> return $ Left e
         Right (NavMessage n) -> do
           let s = ship{SpaceTraders.Model.Ship.nav=n}
-          setShip s
           return $ Right s
 
 myShips :: SpaceTradersT (APIResponse [Ship])
 myShips = do
-  listShips' Pagination{limit=20, page=1, total=0}
+  listShips' [] Pagination{limit=20, page=1, total=0}
   where
-    listShips' :: Pagination -> SpaceTradersT (APIResponse [Ship])
-    listShips' p = do
+    listShips' :: [Ship] -> Pagination -> SpaceTradersT (APIResponse [Ship])
+    listShips' acc p = do
       resp <- sendPaginated (Just p) $ setRequestPath "/v2/my/ships" :: SpaceTradersT (APIPaginatedResponse [Ship])
       case resp of
         Left e -> return $ Left e
         Right (APIMessage r (Just p')) -> do
-          mapM_ setShip r
-          if limit p' * page p' < total p' then listShips' (nextPage p')
-                                           else Right <$> getShips
+          if limit p' * page p' < total p' then listShips' (acc ++ r) (nextPage p')
+                                           else pure $ Right acc
         _ -> undefined
 
 orbit :: Ship -> SpaceTradersT (APIResponse Ship)
@@ -62,7 +59,6 @@ orbit ship = if isInOrbit ship then pure (Right ship) else orbit'
         Left e -> return $ Left e
         Right (NavMessage n) -> do
           let s = ship{SpaceTraders.Model.Ship.nav=n}
-          setShip s
           return $ Right s
 
 data RefuelMessage = RefuelMessage { agent :: SpaceTraders.Model.Agent.Agent
@@ -86,5 +82,4 @@ refuel ship = if overNinetyPercentFuel ship then pure (Right ship) else refuel'
         Right (RefuelMessage a f) -> do
           setAgent a
           let s = ship'{SpaceTraders.Model.Ship.fuel=f}
-          setShip s
           return $ Right s

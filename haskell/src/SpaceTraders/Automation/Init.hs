@@ -19,8 +19,6 @@ import           SpaceTraders.APIClient.Errors
 import           SpaceTraders.APIClient.Ships
 import           SpaceTraders.Database
 import           SpaceTraders.Database.Agents
-import           SpaceTraders.Database.Contracts
-import           SpaceTraders.Database.Ships
 import           SpaceTraders.Database.Tokens
 
 deinitST :: Env -> IO ()
@@ -55,8 +53,6 @@ registerST = do
       let t = token r'
       addToken t
       setAgent $ agent r'
-      setContract $ contract r'
-      setShip $ ship r'
       return t
     Left e' -> throw e'
 
