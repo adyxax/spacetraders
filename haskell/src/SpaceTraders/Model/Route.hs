@@ -3,22 +3,22 @@ module SpaceTraders.Model.Route
   , RouteEndpoint(..)
   ) where
 
-import Data.Aeson
-import Data.Time
-import GHC.Generics
-import qualified Data.Text as T
+import           Data.Aeson
+import qualified Data.Text    as T
+import           Data.Time
+import           GHC.Generics
 
-data Route = Route { arrival :: UTCTime
+data Route = Route { arrival       :: UTCTime
                    , departureTime :: UTCTime
-                   , destination :: RouteEndpoint
-                   , origin :: RouteEndpoint
+                   , destination   :: RouteEndpoint
+                   , origin        :: RouteEndpoint
                    } deriving (FromJSON, Generic, Show, ToJSON)
 
 data RouteEndpoint = RouteEndpoint { routeEndpointType :: T.Text
-                                   , symbol :: T.Text
-                                   , systemSymbol :: T.Text
-                                   , x :: Int
-                                   , y :: Int
+                                   , symbol            :: T.Text
+                                   , systemSymbol      :: T.Text
+                                   , x                 :: Int
+                                   , y                 :: Int
                                    } deriving (Generic, Show)
 instance FromJSON RouteEndpoint where
   parseJSON = withObject "RouteEndpoint" $ \o ->
