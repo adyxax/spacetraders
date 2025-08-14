@@ -11,3 +11,5 @@ stack.yaml.lock
 *~
 
 node_modules
+
+.precomp
