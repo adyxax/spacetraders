@@ -9,3 +9,5 @@ my $state = from-json("state.json".IO.slurp);
 my $client = SpaceTraders::Client.new;
 my $agent = $client.my-agent;
 dd $agent.credits;
+my SpaceTraders::Ship @ships = $client.my-ships;
+dd @ships;
