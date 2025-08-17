@@ -10,6 +10,8 @@ import           SpaceTraders.ApiClient.Client
 import           SpaceTraders.ApiClient.Contracts
 import           SpaceTraders.ApiClient.Errors
 import           SpaceTraders.ApiClient.Ships
+import           SpaceTraders.ApiClient.Systems
+import           SpaceTraders.Model.Ship
 import           System.IO.Error
 
 main = do
@@ -40,9 +42,11 @@ main = do
         Right (s1:s2:_) -> do
           liftIO $ print $ show s1
           (Right s1') <- orbit s1
-          liftIO $ print $ show s1'
+          liftIO $ print $ show s1'.nav.status
           (Right s1'') <- dock s1'
-          liftIO $ print $ show s1''
+          liftIO $ print $ show s1''.nav.status
+          system <- getSystem s1.nav.systemSymbol
+          liftIO $ print $ show system
 
 registerNewAgent :: IO ()
 registerNewAgent = do
