@@ -8,6 +8,7 @@ import           SpaceTraders
 import           SpaceTraders.ApiClient.Agent
 import           SpaceTraders.ApiClient.Client
 import           SpaceTraders.ApiClient.Errors
+import           SpaceTraders.ApiClient.Ships
 import           System.IO.Error
 
 main = do
@@ -31,6 +32,15 @@ main = do
       case agent of
         Left e      -> liftIO $ throwIO e
         Right agent -> liftIO . print $ show agent
+      ships <- myShips
+      case ships of
+        Left e      -> liftIO $ throwIO e
+        Right (s1:s2:_) -> do
+          liftIO $ print $ show s1
+          (Right s1') <- orbit s1
+          liftIO $ print $ show s1'
+          (Right s1'') <- dock s1'
+          liftIO $ print $ show s1''
 
 registerNewAgent :: IO ()
 registerNewAgent = do

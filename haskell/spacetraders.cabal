@@ -25,7 +25,9 @@ executable spacetraders-exe
                , SpaceTraders.ApiClient.Client
                , SpaceTraders.ApiClient.Errors
                , SpaceTraders.ApiClient.Pagination
+               , SpaceTraders.ApiClient.Ships
                , SpaceTraders.Model.Agent
+               , SpaceTraders.Model.Ship
   hs-source-dirs: app
                 , src
   build-depends: aeson

@@ -29,6 +29,7 @@ defaultReq = setRequestHost "api.spacetraders.io"
            $ setRequestPort 443
            $ setRequestSecure True
            $ setRequestHeader "Content-Type" ["application/json"]
+           $ setRequestBody "{}"
              defaultRequest
 
 tokenReq :: T.Text -> Request
