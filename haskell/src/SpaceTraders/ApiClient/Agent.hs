@@ -15,8 +15,7 @@ import           SpaceTraders.ApiClient.Client
 import           SpaceTraders.Model.Agent
 
 myAgent :: SpaceTradersT (ApiResponse Agent)
-myAgent = do
-  send $ setRequestPath "/v2/my/agent"
+myAgent = send $ setRequestPath "/v2/my/agent"
 
 data RegisterData = RegisterData { agent :: Agent
                                  --, contract :: Contract

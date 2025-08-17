@@ -20,10 +20,18 @@ data ApiError = ApiBodyDecodeError { statusCode :: Int, message :: Text, body ::
 
 instance Exception ApiError
 instance FromJSON ApiError where
-  parseJSON v = (ApiHTTPError <$> parseJSON v)
-            <|> (ApiRateLimit <$> parseJSON v)
-            <|> (ApiResetHappened <$> parseJSON v)
-            <|> (ApiResponseError <$> parseJSON v)
+  parseJSON v = withObject "ApiError" (\o ->
+    ApiHTTPError <$> parseJSON v
+    <|> (do
+        e <- o .: "error"
+        c <- e .: "code"
+        d <- e .: "data"
+        case c of
+          4113 -> ApiResetHappened <$> parseJSON d
+          _ -> do
+            m <- e .: "message"
+            pure $ ApiResponseError $ ResponseError c m d)
+    ) v
 
 data HTTPError = HTTPError { error      :: Text
                            , message    :: Text
@@ -46,6 +54,7 @@ instance FromJSON RateLimit where
 data ResetHappened = ResetHappened { actual   :: Text
                                    , expected :: Text
                                    } deriving (Generic, Show)
+instance Exception ResetHappened
 instance FromJSON ResetHappened
 
 data ResponseError = ResponseError { statusCode :: Int

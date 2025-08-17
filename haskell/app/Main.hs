@@ -8,26 +8,37 @@ import           SpaceTraders
 import           SpaceTraders.ApiClient.Agent
 import           SpaceTraders.ApiClient.Client
 import           SpaceTraders.ApiClient.Errors
+import           System.IO.Error
 
 main = do
-  tokenFile <- T.readFile ".token"
+  tokenFile <- T.readFile ".token" `catch` handleTokenFileNotFound
   let token = T.dropWhileEnd isSpace tokenFile
   env <- newEnv $ tokenReq token
-  runSpaceTradersT main' env
+  runSpaceTradersT main' env `catch` handleResetHappened
   where
+    handleResetHappened :: ResetHappened -> IO ()
+    handleResetHappened _ = do
+      registerNewAgent
+      main
+    handleTokenFileNotFound :: IOError -> IO T.Text
+    handleTokenFileNotFound e | isDoesNotExistError e = do
+                                  registerNewAgent
+                                  T.readFile ".token"
+                              | otherwise = ioError e
     main' :: SpaceTradersT ()
     main' = do
       agent <- myAgent
       case agent of
-        Left (ApiResetHappened _) -> liftIO $ do
-          putStrLn "spacetraders.io reset happened, registering a new agent..."
-          tokenFile <- T.readFile ".account-token"
-          let token = T.dropWhileEnd isSpace tokenFile
-          env <- newEnv $ tokenReq token
-          registerResponse <- runSpaceTradersT (register "CORSAIRS" "ADYXAX-HASKELL") env
-          case registerResponse of
-            Left e             -> throwIO e
-            Right registerData -> T.writeFile ".token" registerData.token
-          main
-        Left e                    -> liftIO $ throwIO e
-        Right agent               -> liftIO . print $ show agent
+        Left e      -> liftIO $ throwIO e
+        Right agent -> liftIO . print $ show agent
+
+registerNewAgent :: IO ()
+registerNewAgent = do
+  putStrLn "spacetraders.io reset happened, registering a new agent..."
+  tokenFile <- T.readFile ".account-token"
+  let token = T.dropWhileEnd isSpace tokenFile
+  env <- newEnv $ tokenReq token
+  registerResponse <- runSpaceTradersT (register "CORSAIRS" "ADYXAX-HASKELL") env
+  case registerResponse of
+    Left e             -> throwIO e
+    Right registerData -> T.writeFile ".token" registerData.token

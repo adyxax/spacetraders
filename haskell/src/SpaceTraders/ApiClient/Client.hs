@@ -7,6 +7,7 @@ module SpaceTraders.ApiClient.Client
   ) where
 
 import           Control.Concurrent.Thread.Delay
+import           Control.Exception
 import           Data.Aeson
 import qualified Data.ByteString                   as B
 import qualified Data.ByteString.Internal          as B
@@ -78,6 +79,7 @@ sendAndDecode request = do
        Right r -> pure $ Right r
      else case eitherDecode body of
        Left e -> pure . Left $ ApiBodyDecodeError status (T.pack e) (TL.toStrict $ TL.decodeUtf8 body)
+       Right (ApiResetHappened e) -> liftIO $ throwIO e
        Right (ApiRateLimit r) -> do
          liftIO $ delay (1_000_000 * round r.retryAfter)
          sendAndDecode request
