@@ -5,7 +5,6 @@
 dist*
 *.hi
 *.o
-*.cabal
 .stack-work/
 stack.yaml.lock
 *~
@@ -13,3 +12,5 @@ stack.yaml.lock
 node_modules
 
 .precomp
+.account-token
+.token

@@ -1,26 +1,33 @@
 module Main (main) where
 
+import           Control.Exception
+import           Data.Char                     (isSpace)
+import qualified Data.Text                     as T
+import qualified Data.Text.IO                  as T
 import           SpaceTraders
-import           SpaceTraders.APIClient.Agent
-import           SpaceTraders.APIClient.Contracts
-import           SpaceTraders.APIClient.Ships
-import           SpaceTraders.Automation.Init
+import           SpaceTraders.ApiClient.Agent
+import           SpaceTraders.ApiClient.Client
+import           SpaceTraders.ApiClient.Errors
 
-main :: IO ()
 main = do
-  env <- initST
+  tokenFile <- T.readFile ".token"
+  let token = T.dropWhileEnd isSpace tokenFile
+  env <- newEnv $ tokenReq token
   runSpaceTradersT main' env
-  deinitST env
   where
     main' :: SpaceTradersT ()
     main' = do
-      -- refresh our core objects
-      (Right _) <- myAgent
-      (Right _) <- myContracts
-      (Right (cmdShip:_)) <- myShips
-      -- Testing
-      t <- refuel cmdShip
-      liftIO . print $ case t of
-        (Right r) -> "response: " ++ show r
-        (Left e)  -> "error: " ++ show e
-      return ()
+      agent <- myAgent
+      case agent of
+        Left (ApiResetHappened _) -> liftIO $ do
+          putStrLn "spacetraders.io reset happened, registering a new agent..."
+          tokenFile <- T.readFile ".account-token"
+          let token = T.dropWhileEnd isSpace tokenFile
+          env <- newEnv $ tokenReq token
+          registerResponse <- runSpaceTradersT (register "CORSAIRS" "ADYXAX-HASKELL") env
+          case registerResponse of
+            Left e             -> throwIO e
+            Right registerData -> T.writeFile ".token" registerData.token
+          main
+        Left e                    -> liftIO $ throwIO e
+        Right agent               -> liftIO . print $ show agent

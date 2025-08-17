@@ -1,15 +1,24 @@
 module SpaceTraders.Model.Agent
   ( Agent(..)
+  , nullAgent
   ) where
 
 import           Data.Aeson
-import qualified Data.Text    as T
+import           Data.Text
 import           GHC.Generics
 
-data Agent = Agent { accountId       :: T.Text
-                   , credits         :: Integer
+data Agent = Agent { accountId    :: Text
+                   , credits      :: Integer
                    --, faction :: Faction
-                   , headquarters    :: T.Text
-                   , startingFaction :: T.Text
-                   , symbol          :: T.Text
-                   } deriving (Eq, FromJSON, Generic, Show, ToJSON)
+                   , headquarters :: Text
+                   --, startingFaction :: Text
+                   , symbol       :: Text
+                   } deriving (Generic, Show)
+
+instance FromJSON Agent
+
+nullAgent :: Agent
+nullAgent = Agent { accountId = ""
+                  , credits = 0
+                  , headquarters = ""
+                  , symbol = "" }

@@ -1,0 +1,44 @@
+cabal-version: 2.2
+
+name:           spacetraders
+version:        0.1.0.0
+synopsis:       My spacetraders.io game client implementation
+description:    Please see the README at <https://git.adyxax.org/adyxax/spacetraders>
+category:       Games
+homepage:       https://git.adyxax.org/adyxax/spacetraders#readme
+bug-reports:    https://git.adyxax.org/adyxax/spacetraders/issues
+author:         Julien Dessaux
+maintainer:     julien.dessaux@adyxax.org
+copyright:      2024 Julien Dessaux
+license:        EUPL-1.2
+build-type:     Simple
+extra-source-files: README.md
+
+source-repository head
+  type: git
+  location: https://git.adyxax.org/adyxax/spacetraders
+
+executable spacetraders-exe
+  main-is: Main.hs
+  other-modules: SpaceTraders
+               , SpaceTraders.ApiClient.Agent
+               , SpaceTraders.ApiClient.Client
+               , SpaceTraders.ApiClient.Errors
+               , SpaceTraders.ApiClient.Pagination
+               , SpaceTraders.Model.Agent
+  hs-source-dirs: app
+                , src
+  build-depends: aeson
+               , base >=4.7 && <5
+               , bytestring
+               , http-conduit
+               , http-types
+               , mtl
+               , text
+               , time
+               , unbounded-delays
+               , unix
+  default-language: GHC2024
+  default-extensions: DuplicateRecordFields
+                    , OverloadedRecordDot
+                    , OverloadedStrings
