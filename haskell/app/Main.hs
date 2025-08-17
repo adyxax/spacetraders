@@ -1,12 +1,13 @@
 module Main (main) where
 
 import           Control.Exception
-import           Data.Char                     (isSpace)
-import qualified Data.Text                     as T
-import qualified Data.Text.IO                  as T
+import           Data.Char                        (isSpace)
+import qualified Data.Text                        as T
+import qualified Data.Text.IO                     as T
 import           SpaceTraders
 import           SpaceTraders.ApiClient.Agent
 import           SpaceTraders.ApiClient.Client
+import           SpaceTraders.ApiClient.Contracts
 import           SpaceTraders.ApiClient.Errors
 import           SpaceTraders.ApiClient.Ships
 import           System.IO.Error
@@ -28,10 +29,11 @@ main = do
                               | otherwise = ioError e
     main' :: SpaceTradersT ()
     main' = do
-      agent <- myAgent
-      case agent of
-        Left e      -> liftIO $ throwIO e
-        Right agent -> liftIO . print $ show agent
+      (Right agent) <- myAgent
+      liftIO . print $ show agent
+      (Right (contract:[])) <- myContracts
+      liftIO $ print $ show contract
+      _ <- accept contract
       ships <- myShips
       case ships of
         Left e      -> liftIO $ throwIO e

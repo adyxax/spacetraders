@@ -23,10 +23,12 @@ executable spacetraders-exe
   other-modules: SpaceTraders
                , SpaceTraders.ApiClient.Agent
                , SpaceTraders.ApiClient.Client
+               , SpaceTraders.ApiClient.Contracts
                , SpaceTraders.ApiClient.Errors
                , SpaceTraders.ApiClient.Pagination
                , SpaceTraders.ApiClient.Ships
                , SpaceTraders.Model.Agent
+               , SpaceTraders.Model.Contract
                , SpaceTraders.Model.Ship
   hs-source-dirs: app
                 , src
