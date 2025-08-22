@@ -6,8 +6,13 @@ use SpaceTraders;
 use TOML;
 
 my $state = from-json("state.json".IO.slurp);
-my $client = SpaceTraders::Client.new;
+my SpaceTraders::Client $client .= new;
 my $agent = $client.my-agent;
-dd $agent.credits;
 my SpaceTraders::Ship @ships = $client.my-ships;
-dd @ships;
+CATCH {
+    when SpaceTraders::Errors::ExistingContractError { .resume };
+}
+my SpaceTraders::Contract $contract = @ships[0].negotiate-contract();
+dd $contract;
+my SpaceTraders::Contract @contracts = $client.my-contracts;
+dd @contracts;

@@ -1,5 +1,7 @@
 unit module SpaceTraders::Errors;
 
+use JSON::Fast;
+
 class ApiError is Exception {
     has Int $.code is required;
     has Str $.message is required;
@@ -9,15 +11,15 @@ class ApiError is Exception {
     }
 }
 
-class TokenResetDateMismatchError is Exception {
-    has Str $.actual is required;
-    has Str $.expected is required;
+role SimpleError is Exception {
+    has ApiError $.error;
     method gist() {
-        "Failed to parse token. Token reset_date does not match the server. Server resets " ~
-        "happen on a weekly to bi-weekly frequency during alpha. After a reset, you should " ~
-        "re-register your agent. actual: {$.actual} expected: {$.expected}";
+        $.error.gist;
     }
-    method new(ApiError $err) {
-        self.bless :actual($err.data<actual>) :expected($err.data<expected>);
+    method new(ApiError $error) {
+        self.bless :$error;
     }
 }
+
+class ExistingContractError does SimpleError {}
+class TokenResetDateMismatchError does SimpleError {}

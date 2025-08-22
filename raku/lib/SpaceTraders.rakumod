@@ -10,11 +10,15 @@ class Agent {...};
 class Cargo {...};
 class CargoItem {...};
 class Cooldown {...};
+class Contract {...};
+class Delivery {...};
 class Fuel {...};
 class Nav {...};
+class Payment {...};
 class Route {...};
 class RouteEndpoint {...};
 class Ship {...};
+class Terms {...};
 
 class Client {
     has URI $.base-uri;
@@ -23,11 +27,15 @@ class Client {
 
     #----- Account management --------------------------------------------------
     method my-agent(--> Agent) {
-        return Agent.new(:client(self), |self.request(:method<GET>, :path</v2/my/agent>));
+        return Agent.new(self, self.request(:method<GET>, :path</v2/my/agent>));
+    }
+    method my-contracts(--> Seq) {
+        my $data = self.request(:method<GET>, :path</v2/my/contracts>);
+        $data.map(-> $contractData { Contract.new(self, $contractData); });
     }
     method my-ships(--> Seq) {
         my $data = self.request(:method<GET>, :path</v2/my/ships>);
-        $data.map(-> $shipData {Ship.new($shipData); });
+        $data.map(-> $shipData {Ship.new(self, $shipData); });
     }
     method register(--> Agent) {
         my $config = from-toml("config.toml".IO.slurp);
@@ -50,11 +58,11 @@ class Client {
                                        :host($base-uri.host);
         self.bless :$base-uri :$headers;
     }
-    method request(Str :$method, Str :$path, Hash :$payload) {
+    method request(Str :$method, Str :$path, Hash :$payload = {} --> Any) {
         my $uri = $.base-uri.clone;
         $uri.path($path);
         my $request = HTTP::Request.new($method, $uri, $.headers);
-        $request.add-content(to-json $payload) if $payload;
+        $request.add-content(to-json $payload);
         my $res = $!ua.request($request);
         my $content = $res.content;
         my $parsed = try from-json $content;
@@ -67,11 +75,13 @@ class Client {
         }
         else {
             my $err = $parsed<error>;
-            my $apiError = SpaceTraders::Errors::ApiError.new
-                           :code($err<code>) :message($err<message>) :data($err<data>);
+            my $apiError = SpaceTraders::Errors::ApiError.new(:code($err<code>) :message($err<message>) :data($err<data>));
             given $err<code> {
                 when 4113 {
                     die SpaceTraders::Errors::TokenResetDateMismatchError.new($apiError);
+                }
+                when 4511 {
+                    die SpaceTraders::Errors::ExistingContractError.new($apiError);
                 }
             }
             die "API Error {$err<code>}: {$err<message>} (data: {to-json $err<data>})";
@@ -88,6 +98,10 @@ class Agent {
 	has Int $.shipCount;
 	has Str $.startingFaction;
 	has Str $.symbol;
+    method new(Client $client, Hash $data --> Agent) {
+        self.bless(:$client :accountId($data<accountId>) :credits($data<credits>) :headquarters($data<headquarters>) :shipCount($data<shipCount>)
+                   :startingFaction($data<startingFaction>) :symbol($data<symbol>));
+    }
 }
 
 class Cargo {
@@ -119,6 +133,33 @@ class Cooldown {
     }
 }
 
+class Contract {
+	has Bool $.accepted;
+    has Client $.client;
+	has Str $.id;
+	has Str $.type;
+	has DateTime $.deadlineToAccept;
+	has Str $.factionSymbol;
+    has Bool $.fulfilled;
+    has Terms $.terms;
+    method new(Client $client, Hash $data --> Contract) {
+        my $deadlineToAccept = DateTime.new($data<deadlineToAccept>);
+        my $terms = Terms.new($data<terms>);
+        self.bless(:accepted($data<accepted>) :$client :id($data<id>) :type($data<type>) :$deadlineToAccept :factionSymbol($data<factionSymbol>)
+                   :fulfilled($data<fulfilled>) :$terms);
+    }
+}
+
+class Delivery {
+    has Str $.destinationSymbol;
+    has Str $.tradeSymbol;
+    has Int $.unitsFulfilled;
+    has Int $.unitsRequired;
+    method new(Hash $data --> Delivery) {
+        self.bless :destinationSymbol($data<destinationSymbol>) :tradeSymbol($data<tradeSymbol>) :unitsFulfilled($data<unitsFulfilled>) :unitsRequired($data<unitsRequired>);
+    }
+}
+
 class Fuel {
     has Int $.capacity;
     # consumed
@@ -137,6 +178,14 @@ class Nav {
     method new(Hash $data --> Nav) {
         my $route = Route.new($data<route>);
         self.bless :flightMode($data<flightMode>) :$route :status($data<status>) :systemSymbol($data<systemSymbol>) :waypointSymbol($data<waypointSymbol>);
+    }
+}
+
+class Payment {
+    has Int $.onAccepted;
+    has Int $.onFulfilled;
+    method new(Hash $data --> Payment) {
+        self.bless :onAccepted($data<onAccepted>) :onFulfilled($data<onFulfilled>);
     }
 }
 
@@ -167,6 +216,7 @@ class RouteEndpoint {
 
 class Ship {
     has Cargo $.cargo;
+    has Client $.client;
     has Cooldown $.cooldown;
     # crew
     # engine
@@ -178,11 +228,26 @@ class Ship {
     # reactor
     # registration
     has Str $.symbol;
-    method new(Hash $data --> Ship) {
+    method negotiate-contract(-->Contract) {
+        Contract.new($.client, $.client.request(:method<POST>, :path("/v2/my/ships/{$.symbol}/negotiate/contract")));
+    }
+    method new(Client $client, Hash $data --> Ship) {
         my $cargo = Cargo.new($data<cargo>);
         my $cooldown = Cooldown.new($data<cooldown>);
         my $fuel = Fuel.new($data<fuel>);
         my $nav = Nav.new($data<nav>);
-        self.bless :$cargo :$cooldown :$fuel :$nav :symbol($data<symbol>);
+        self.bless :$cargo :$client :$cooldown :$fuel :$nav :symbol($data<symbol>);
+    }
+}
+
+class Terms {
+    has DateTime $.deadline;
+    has Delivery @.deliver;
+    has Payment $.payment;
+    method new(Hash $data --> Terms) {
+        my $deadline = DateTime.new($data<deadline>);
+        my @deliver = $data<deliver>.map(-> $deliveryData { Delivery.new($deliveryData); });
+        my $payment = Payment.new($data<payment>);
+        self.bless :$deadline :@deliver :$payment;
     }
 }
