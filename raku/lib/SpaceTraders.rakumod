@@ -47,7 +47,7 @@ class Client {
         my $data = self.request(:method<POST> :path</v2/register> :%payload);
         spurt "state.json", to-json($data);
         $.headers.field(authorization => "Bearer {$data<token>}");
-        return Agent.new(:client(self), |$data<agent>);
+        return Agent.new(:client(self), $data<agent>);
     }
 
     #----- Internals -----------------------------------------------------------
