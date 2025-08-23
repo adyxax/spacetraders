@@ -1,6 +1,6 @@
 unit module SpaceTraders;
 
-use HTTP::UserAgent;
+use Cro::HTTP::Client;
 use JSON::Fast;
 use SpaceTraders::Errors;
 use URI;
@@ -21,9 +21,7 @@ class Ship {...};
 class Terms {...};
 
 class Client {
-    has URI $.base-uri;
-    has HTTP::Header $.headers;
-    has HTTP::UserAgent $.ua = HTTP::UserAgent.new;
+    has Cro::HTTP::Client:D $.client is required;
 
     #----- Account management --------------------------------------------------
     method my-agent(--> Agent) {
@@ -52,40 +50,41 @@ class Client {
 
     #----- Internals -----------------------------------------------------------
     method new(URI $base-uri = URI.new('https://api.spacetraders.io/v2/') -->Client) {
-        my $state = from-json("state.json".IO.slurp);
-        my $headers = HTTP::Header.new :authorization("Bearer {$state<token>}")
-                                       :content-type<application/json>
-                                       :host($base-uri.host);
-        self.bless :$base-uri :$headers;
+        my Hash:D $state = from-json("state.json".IO.slurp);
+        my Cro::HTTP::Client:D $client .= new(
+            base-uri => $base-uri,
+            headers => [ authorization => "Bearer {$state<token>}",
+                         content-type => 'application/json',
+                         host => $base-uri.host,
+                       ],
+        );
+        self.bless: :$client;
     }
     method request(Str :$method, Str :$path, Hash :$payload = {} --> Any) {
-        my $uri = $.base-uri.clone;
-        $uri.path($path);
-        my $request = HTTP::Request.new($method, $uri, $.headers);
-        $request.add-content(to-json $payload);
-        my $res = $!ua.request($request);
-        my $content = $res.content;
-        my $parsed = try from-json $content;
-        unless $parsed {
-            die "Invalid JSON response: $content";
-        }
-
-        if $res.is-success {
-            return $parsed<data>;
-        }
-        else {
-            my $err = $parsed<error>;
-            my $apiError = SpaceTraders::Errors::ApiError.new(:code($err<code>) :message($err<message>) :data($err<data>));
-            given $err<code> {
-                when 4113 {
-                    die SpaceTraders::Errors::TokenResetDateMismatchError.new($apiError);
+        CATCH {
+            when X::Cro::HTTP::Error {
+                my $json = await .response.body;
+                my $err = $json<error>;
+                my $apiError = SpaceTraders::Errors::ApiError.new(:code($err<code>) :message($err<message>) :data($err<data>));
+                given $err<code> {
+                    when 429 {
+                        await Promise.in($err<data><retryAfter>);
+                        return self.request(:$method :$path :$payload);
+                    }
+                    when 4113 {
+                        die SpaceTraders::Errors::TokenResetDateMismatchError.new($apiError);
+                    }
+                    when 4511 {
+                        die SpaceTraders::Errors::ExistingContractError.new($apiError);
+                    }
                 }
-                when 4511 {
-                    die SpaceTraders::Errors::ExistingContractError.new($apiError);
-                }
+                die "API Error {$err<code>}: {$err<message>} (data: {to-json $err<data>})";
             }
-            die "API Error {$err<code>}: {$err<message>} (data: {to-json $err<data>})";
         }
+        my $response = await $!client.request($method, $path, body => $payload);
+        my $json = await $response.body;
+
+        return $json<data>;
     }
 }
 
