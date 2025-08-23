@@ -1,6 +1,6 @@
 unit module SpaceTraders;
 
-use HTTP::UserAgent;
+use HTTP::Tiny;
 use JSON::Fast;
 use SpaceTraders::Errors;
 use URI;
@@ -22,8 +22,7 @@ class Terms {...};
 
 class Client {
     has URI $.base-uri;
-    has HTTP::Header $.headers;
-    has HTTP::UserAgent $.ua = HTTP::UserAgent.new;
+    has HTTP::Tiny:D $.client is required;
 
     #----- Account management --------------------------------------------------
     method my-agent(--> Agent) {
@@ -39,38 +38,36 @@ class Client {
     }
     method register(--> Agent) {
         my $config = from-toml("config.toml".IO.slurp);
-        $.headers.field(authorization => "Bearer {$config<account><token>}");
+        my %headers = (authorization => "Bearer {$config<account><token>}");
         my %payload = (
             faction => $config<agent><faction>,
             symbol  => $config<agent><symbol>,
         );
-        my $data = self.request(:method<POST> :path</v2/register> :%payload);
+        my $data = self.request(:%headers :method<POST> :path</v2/register> :%payload);
         spurt "state.json", to-json($data);
-        $.headers.field(authorization => "Bearer {$data<token>}");
+        $!client = HTTP::Tiny.new(:default-headers(authorization => "Bearer {$data<token>}",
+                                                   content-type => 'application/json'));
         return Agent.new(:client(self), $data<agent>);
     }
 
     #----- Internals -----------------------------------------------------------
     method new(URI $base-uri = URI.new('https://api.spacetraders.io/v2/') -->Client) {
         my $state = from-json("state.json".IO.slurp);
-        my $headers = HTTP::Header.new :authorization("Bearer {$state<token>}")
-                                       :content-type<application/json>
-                                       :host($base-uri.host);
-        self.bless :$base-uri :$headers;
+        my HTTP::Tiny $client .= new(:default-headers(authorization => "Bearer {$state<token>}",
+                                                      content-type => 'application/json'));
+        self.bless :$base-uri :$client;
     }
-    method request(Str :$method, Str :$path, Hash :$payload = {} --> Any) {
+    method request(Hash :$headers = {}, Str :$method, Str :$path, Hash :$payload = {} --> Any) {
         my $uri = $.base-uri.clone;
         $uri.path($path);
-        my $request = HTTP::Request.new($method, $uri, $.headers);
-        $request.add-content(to-json $payload);
-        my $res = $!ua.request($request);
-        my $content = $res.content;
+        my $response = $!client.request($method, $uri.Str, :$headers, :content(to-json $payload));
+        my $content = $response<content>.decode;
         my $parsed = try from-json $content;
         unless $parsed {
             die "Invalid JSON response: $content";
         }
 
-        if $res.is-success {
+        if $response<success> {
             return $parsed<data>;
         }
         else {
