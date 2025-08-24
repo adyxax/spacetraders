@@ -27,6 +27,7 @@ instance FromJSON ApiError where
         c <- e .: "code"
         d <- e .: "data"
         case c of
+          429 -> ApiRateLimit <$> parseJSON d
           4113 -> ApiResetHappened <$> parseJSON d
           _ -> do
             m <- e .: "message"
