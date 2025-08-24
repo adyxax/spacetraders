@@ -25,6 +25,10 @@ instance FromJSON Contract where
   parseJSON = genericParseJSON defaultOptions
     { fieldLabelModifier = \x -> if x == "type_" then "type" else x }
 
+instance ToJSON Contract where
+  toJSON     = genericToJSON defaultOptions
+    { fieldLabelModifier = \x -> if x == "type_" then "type" else x }
+
 data Delivery = Delivery
   { destinationSymbol :: T.Text
   , tradeSymbol       :: T.Text
@@ -33,6 +37,7 @@ data Delivery = Delivery
   } deriving (Generic, Show)
 
 instance FromJSON Delivery
+instance ToJSON Delivery
 
 data Payment = Payment
   { onAccepted  :: Int
@@ -40,6 +45,7 @@ data Payment = Payment
   } deriving (Generic, Show)
 
 instance FromJSON Payment
+instance ToJSON Payment
 
 data Terms = Terms
   { deadline :: UTCTime
@@ -48,3 +54,4 @@ data Terms = Terms
   } deriving (Generic, Show)
 
 instance FromJSON Terms
+instance ToJSON Terms

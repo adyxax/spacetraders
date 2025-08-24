@@ -23,6 +23,7 @@ data Cargo = Cargo
   } deriving (Generic, Show)
 
 instance FromJSON Cargo
+instance ToJSON Cargo
 
 data CargoItem = CargoItem
   { description :: T.Text
@@ -32,6 +33,7 @@ data CargoItem = CargoItem
   } deriving (Generic, Show)
 
 instance FromJSON CargoItem
+instance ToJSON CargoItem
 
 data Cooldown = Cooldown
   { remainingSeconds :: Int
@@ -40,6 +42,7 @@ data Cooldown = Cooldown
   } deriving (Generic, Show)
 
 instance FromJSON Cooldown
+instance ToJSON Cooldown
 
 data Fuel = Fuel
   { capacity :: Int
@@ -48,6 +51,7 @@ data Fuel = Fuel
   } deriving (Generic, Show)
 
 instance FromJSON Fuel
+instance ToJSON Fuel
 
 data FuelConsumed = FuelConsumed
   { amount    :: Int
@@ -55,6 +59,7 @@ data FuelConsumed = FuelConsumed
   } deriving (Generic, Show)
 
 instance FromJSON FuelConsumed
+instance ToJSON FuelConsumed
 
 isDocked :: Ship -> Bool
 isDocked ship = ship.nav.status == "DOCKED"
@@ -71,6 +76,7 @@ data Nav = Nav
   } deriving (Generic, Show)
 
 instance FromJSON Nav
+instance ToJSON Nav
 
 data Route = Route
   { arrival       :: UTCTime
@@ -80,6 +86,7 @@ data Route = Route
   } deriving (Generic, Show)
 
 instance FromJSON Route
+instance ToJSON Route
 
 data RouteEndpoint = RouteEndpoint
   { type_        :: T.Text
@@ -91,6 +98,10 @@ data RouteEndpoint = RouteEndpoint
 
 instance FromJSON RouteEndpoint where
   parseJSON = genericParseJSON defaultOptions
+    { fieldLabelModifier = \x -> if x == "type_" then "type" else x }
+
+instance ToJSON RouteEndpoint where
+  toJSON     = genericToJSON defaultOptions
     { fieldLabelModifier = \x -> if x == "type_" then "type" else x }
 
 data Ship = Ship
@@ -109,3 +120,4 @@ data Ship = Ship
   } deriving (Generic, Show)
 
 instance FromJSON Ship
+instance ToJSON Ship

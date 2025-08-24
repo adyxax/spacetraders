@@ -20,6 +20,9 @@ data System = System
 instance FromJSON System where
   parseJSON = genericParseJSON defaultOptions
     { fieldLabelModifier = \x -> if x == "type_" then "type" else x }
+instance ToJSON System where
+  toJSON     = genericToJSON defaultOptions
+    { fieldLabelModifier = \x -> if x == "type_" then "type" else x }
 
 data Waypoint = Waypoint { orbits :: Maybe T.Text
                          , symbol :: T.Text
@@ -30,4 +33,7 @@ data Waypoint = Waypoint { orbits :: Maybe T.Text
 
 instance FromJSON Waypoint where
   parseJSON = genericParseJSON defaultOptions
+    { fieldLabelModifier = \x -> if x == "type_" then "type" else x }
+instance ToJSON Waypoint where
+  toJSON     = genericToJSON defaultOptions
     { fieldLabelModifier = \x -> if x == "type_" then "type" else x }

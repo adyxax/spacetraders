@@ -14,10 +14,13 @@ import           SpaceTraders.ApiClient.Systems
 import           SpaceTraders.Model.Ship
 import           System.IO.Error
 
+defaultLogLevel :: LogLevel
+defaultLogLevel = Info
+
 main = do
   tokenFile <- T.readFile ".token" `catch` handleTokenFileNotFound
   let token = T.dropWhileEnd isSpace tokenFile
-  env <- newEnv $ tokenReq token
+  env <- newEnv (tokenReq token) defaultLogLevel
   runSpaceTradersT main' env `catch` handleResetHappened
   where
     handleResetHappened :: ResetHappened -> IO ()
@@ -32,28 +35,28 @@ main = do
     main' :: SpaceTradersT ()
     main' = do
       (Right agent) <- myAgent
-      liftIO . print $ show agent
+      logJSON Info "agent" agent
       (Right (contract:[])) <- myContracts
-      liftIO $ print $ show contract
+      logJSON Info "contract" contract
       _ <- accept contract
       ships <- myShips
       case ships of
         Left e      -> liftIO $ throwIO e
         Right (s1:s2:_) -> do
-          liftIO $ print $ show s1
+          logJSON Info "s1" s1
           (Right s1') <- orbit s1
-          liftIO $ print $ show s1'.nav.status
+          logJSON Info "s1 after orbit" s1'.nav.status
           (Right s1'') <- dock s1'
-          liftIO $ print $ show s1''.nav.status
+          logJSON Info "s1 after dock" s1''.nav.status
           system <- getSystem s1.nav.systemSymbol
-          liftIO $ print $ show system
+          logJSON Info "system" system
 
 registerNewAgent :: IO ()
 registerNewAgent = do
   putStrLn "spacetraders.io reset happened, registering a new agent..."
   tokenFile <- T.readFile ".account-token"
   let token = T.dropWhileEnd isSpace tokenFile
-  env <- newEnv $ tokenReq token
+  env <- newEnv (tokenReq token) defaultLogLevel
   registerResponse <- runSpaceTradersT (register "CORSAIRS" "ADYXAX-HASKELL") env
   case registerResponse of
     Left e             -> throwIO e

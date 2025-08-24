@@ -16,6 +16,7 @@ data Agent = Agent { accountId    :: Text
                    } deriving (Generic, Show)
 
 instance FromJSON Agent
+instance ToJSON Agent
 
 nullAgent :: Agent
 nullAgent = Agent { accountId = ""

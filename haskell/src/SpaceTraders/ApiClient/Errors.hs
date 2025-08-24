@@ -16,7 +16,7 @@ data ApiError = ApiBodyDecodeError { statusCode :: Int, message :: Text, body ::
               | ApiRateLimit RateLimit
               | ApiResetHappened ResetHappened
               | ApiResponseError ResponseError
-              deriving Show
+              deriving (Generic, Show)
 
 instance Exception ApiError
 instance FromJSON ApiError where
@@ -33,12 +33,14 @@ instance FromJSON ApiError where
             m <- e .: "message"
             pure $ ApiResponseError $ ResponseError c m d)
     ) v
+instance ToJSON ApiError
 
 data HTTPError = HTTPError { error      :: Text
                            , message    :: Text
                            , statusCode :: Int
                            } deriving (Generic, Show)
 instance FromJSON HTTPError
+instance ToJSON HTTPError
 
 data RateLimit = RateLimit { limitBurst     :: Int
                            , limitPerSecond :: Int
@@ -51,15 +53,20 @@ data RateLimit = RateLimit { limitBurst     :: Int
 instance FromJSON RateLimit where
   parseJSON = genericParseJSON defaultOptions
     { fieldLabelModifier = \x -> if x == "type_" then "type" else x }
+instance ToJSON RateLimit where
+  toJSON     = genericToJSON defaultOptions
+    { fieldLabelModifier = \x -> if x == "type_" then "type" else x }
 
 data ResetHappened = ResetHappened { actual   :: Text
                                    , expected :: Text
                                    } deriving (Generic, Show)
 instance Exception ResetHappened
 instance FromJSON ResetHappened
+instance ToJSON ResetHappened
 
 data ResponseError = ResponseError { statusCode :: Int
                                    , message    :: Text
                                    , data_      :: Value
                                    } deriving (Generic, Show)
 instance FromJSON ResponseError
+instance ToJSON ResponseError
