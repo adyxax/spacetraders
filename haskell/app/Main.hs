@@ -1,9 +1,14 @@
 module Main (main) where
 
 import           Control.Exception
+import           Control.Monad
+import           Data.Aeson
 import           Data.Char                        (isSpace)
 import qualified Data.Text                        as T
+import qualified Data.Text.Encoding               as T
 import qualified Data.Text.IO                     as T
+import qualified Database.SQLite.Simple           as S
+import           Network.HTTP.Simple
 import           SpaceTraders
 import           SpaceTraders.ApiClient.Agent
 import           SpaceTraders.ApiClient.Client
@@ -11,6 +16,8 @@ import           SpaceTraders.ApiClient.Contracts
 import           SpaceTraders.ApiClient.Errors
 import           SpaceTraders.ApiClient.Ships
 import           SpaceTraders.ApiClient.Systems
+import           SpaceTraders.Database
+import           SpaceTraders.Database.Tokens
 import           SpaceTraders.Model.Ship
 import           System.IO.Error
 
@@ -18,21 +25,22 @@ defaultLogLevel :: LogLevel
 defaultLogLevel = Info
 
 main = do
-  tokenFile <- T.readFile ".token" `catch` handleTokenFileNotFound
-  let token = T.dropWhileEnd isSpace tokenFile
-  env <- newEnv (tokenReq token) defaultLogLevel
-  runSpaceTradersT main' env `catch` handleResetHappened
+  dbConn <- open
+  token <- getToken dbConn `catch` (handleTokenNotFound dbConn)
+  env <- newEnv dbConn defaultLogLevel $ requestTemplate token
+  restart <- runSpaceTradersT main' env `catch` (handleResetHappened dbConn)
+  close dbConn
+  when restart main
   where
-    handleResetHappened :: ResetHappened -> IO ()
-    handleResetHappened _ = do
-      registerNewAgent
-      main
-    handleTokenFileNotFound :: IOError -> IO T.Text
-    handleTokenFileNotFound e | isDoesNotExistError e = do
-                                  registerNewAgent
-                                  T.readFile ".token"
-                              | otherwise = ioError e
-    main' :: SpaceTradersT ()
+    handleResetHappened :: S.Connection -> ResetHappened -> IO Bool
+    handleResetHappened dbConn _ = do
+      wipe dbConn
+      pure True
+    handleTokenNotFound :: S.Connection -> SomeException -> IO T.Text
+    handleTokenNotFound dbConn _ = do
+      registerNewAgent dbConn
+      getToken dbConn
+    main' :: SpaceTradersT Bool
     main' = do
       (Right agent) <- myAgent
       logJSON Info "agent" agent
@@ -50,14 +58,27 @@ main = do
           logJSON Info "s1 after dock" s1''.nav.status
           system <- getSystem s1.nav.systemSymbol
           logJSON Info "system" system
+      pure False
 
-registerNewAgent :: IO ()
-registerNewAgent = do
+registerNewAgent :: S.Connection -> IO T.Text
+registerNewAgent dbConn = do
   putStrLn "spacetraders.io reset happened, registering a new agent..."
   tokenFile <- T.readFile ".account-token"
   let token = T.dropWhileEnd isSpace tokenFile
-  env <- newEnv (tokenReq token) defaultLogLevel
+  env <- newEnv dbConn defaultLogLevel $ requestTemplate token
   registerResponse <- runSpaceTradersT (register "CORSAIRS" "ADYXAX-HASKELL") env
   case registerResponse of
     Left e             -> throwIO e
-    Right registerData -> T.writeFile ".token" registerData.token
+    Right registerData -> do
+      addToken dbConn registerData.token
+      S.execute dbConn "INSERT INTO agents(data) VALUES (?);" (S.Only $ encode registerData.agent)
+      pure registerData.token
+
+requestTemplate :: T.Text -> Request
+requestTemplate token = setRequestHost "api.spacetraders.io"
+                      $ setRequestPort 443
+                      $ setRequestSecure True
+                      $ setRequestHeader "Content-Type" ["application/json"]
+                      $ setRequestHeader "Authorization" [T.encodeUtf8 $ "Bearer " <> token]
+                      $ setRequestBody "{}"
+                      $ defaultRequest

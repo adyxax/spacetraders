@@ -1,9 +1,7 @@
 module SpaceTraders.ApiClient.Client
   ( ApiResponse
-  , defaultReq
   , send
   , sendPaginated
-  , tokenReq
   ) where
 
 import           Control.Concurrent.Thread.Delay
@@ -22,18 +20,6 @@ import           Network.HTTP.Types.Status
 import           SpaceTraders
 import           SpaceTraders.ApiClient.Errors
 import           SpaceTraders.ApiClient.Pagination
-
--- HTTP request objects --------------------------------------------------------
-defaultReq :: Request
-defaultReq = setRequestHost "api.spacetraders.io"
-           $ setRequestPort 443
-           $ setRequestSecure True
-           $ setRequestHeader "Content-Type" ["application/json"]
-           $ setRequestBody "{}"
-             defaultRequest
-
-tokenReq :: T.Text -> Request
-tokenReq token = setRequestHeader "Authorization" [T.encodeUtf8 $ "Bearer " <> token] defaultReq
 
 -- Sending HTTP requests -------------------------------------------------------
 data SuccessResponse a = SuccessResponse

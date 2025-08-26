@@ -13,24 +13,19 @@ import           Control.Monad
 import           Control.Monad.Reader
 import           Data.Aeson
 import qualified Data.ByteString.Lazy.Char8 as BL8
-import           Data.IORef
 import qualified Data.Text                  as T
 import           Data.Time.Clock            (getCurrentTime)
+import qualified Database.SQLite.Simple     as S
 import           GHC.Generics
 import           Network.HTTP.Simple
 import           SpaceTraders.Model.Agent
 import           System.IO                  (stdout)
 
 data Env = Env
-  { agent    :: IORef Agent
+  { dbConn   :: S.Connection
   , logLevel :: LogLevel
-  , request  :: Request }
-
-type SpaceTradersT a = ReaderT Env IO a
-
-data LogLevel = Error | Warning | Info | Debug deriving (Eq, Generic, Ord, Show)
-
-instance ToJSON LogLevel
+  , request  :: Request
+  }
 
 logJSON :: ToJSON a => LogLevel -> T.Text -> a -> SpaceTradersT ()
 logJSON logLevel message payload = do
@@ -45,10 +40,15 @@ logJSON logLevel message payload = do
           ]
     liftIO . BL8.hPutStrLn stdout $ encode v
 
-newEnv :: Request -> LogLevel -> IO Env
-newEnv req logLevel = do
-  agent <- newIORef nullAgent
-  pure $ Env agent logLevel req
+data LogLevel = Error | Warning | Info | Debug deriving (Eq, Generic, Ord, Show)
+
+instance ToJSON LogLevel
+
+newEnv :: S.Connection -> LogLevel -> Request -> IO Env
+newEnv dbConn logLevel request = do
+  pure $ Env dbConn logLevel request
 
 runSpaceTradersT :: SpaceTradersT a -> Env -> IO a
 runSpaceTradersT = runReaderT
+
+type SpaceTradersT a = ReaderT Env IO a

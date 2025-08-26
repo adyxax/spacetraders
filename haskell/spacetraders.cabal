@@ -28,6 +28,9 @@ executable spacetraders-exe
                , SpaceTraders.ApiClient.Pagination
                , SpaceTraders.ApiClient.Ships
                , SpaceTraders.ApiClient.Systems
+               , SpaceTraders.Database
+               , SpaceTraders.Database.Agents
+               , SpaceTraders.Database.Tokens
                , SpaceTraders.Model.Agent
                , SpaceTraders.Model.Contract
                , SpaceTraders.Model.Ship
@@ -37,9 +40,11 @@ executable spacetraders-exe
   build-depends: aeson
                , base >=4.7 && <5
                , bytestring
+               , file-embed
                , http-conduit
                , http-types
                , mtl
+               , sqlite-simple
                , text
                , time
                , unbounded-delays
