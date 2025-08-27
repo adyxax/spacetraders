@@ -65,7 +65,7 @@ class Client {
             when X::Cro::HTTP::Error {
                 my $json = await .response.body;
                 my $err = $json<error>;
-                my $apiError = SpaceTraders::Errors::ApiError.new(:code($err<code>) :message($err<message>) :data($err<data>));
+                my SpaceTraders::Errors::ApiError $apiError .= new(:code($err<code>) :message($err<message>) :data($err<data>));
                 given $err<code> {
                     when 429 {
                         await Promise.in($err<data><retryAfter>);
@@ -108,7 +108,7 @@ class Cargo {
     has CargoItem @.inventory;
     has Int $.units;
     method new(Hash $data --> Cargo) {
-        my @inventory = $data<inventory>.elems > 0 ?? $data<inventory>.map(CargoItem.new($_)) !! ();
+        my CargoItem @inventory = $data<inventory>.elems > 0 ?? $data<inventory>.map(CargoItem.new($_)) !! ();
         self.bless :capacity($data<capacity>) :@inventory :units($data<units>);
     }
 }
@@ -142,8 +142,8 @@ class Contract {
     has Bool $.fulfilled;
     has Terms $.terms;
     method new(Client $client, Hash $data --> Contract) {
-        my $deadlineToAccept = DateTime.new($data<deadlineToAccept>);
-        my $terms = Terms.new($data<terms>);
+        my DateTime $deadlineToAccept .= new($data<deadlineToAccept>);
+        my Terms $terms .= new($data<terms>);
         self.bless(:accepted($data<accepted>) :$client :id($data<id>) :type($data<type>) :$deadlineToAccept :factionSymbol($data<factionSymbol>)
                    :fulfilled($data<fulfilled>) :$terms);
     }
@@ -175,7 +175,7 @@ class Nav {
     has Str $.systemSymbol;
     has Str $.waypointSymbol;
     method new(Hash $data --> Nav) {
-        my $route = Route.new($data<route>);
+        my Route $route .= new($data<route>);
         self.bless :flightMode($data<flightMode>) :$route :status($data<status>) :systemSymbol($data<systemSymbol>) :waypointSymbol($data<waypointSymbol>);
     }
 }
@@ -194,10 +194,10 @@ class Route {
     has RouteEndpoint $.destination;
     has RouteEndpoint $.origin;
     method new(Hash $data --> Route) {
-        my $arrival = DateTime.new($data<arrival>);
-        my $departureTime = DateTime.new($data<departureTime>);
-        my $destination = RouteEndpoint.new($data<destination>);
-        my $origin = RouteEndpoint.new($data<origin>);
+        my DateTime $arrival .= new($data<arrival>);
+        my DateTime $departureTime .= new($data<departureTime>);
+        my RouteEndpoint $destination .= new($data<destination>);
+        my RouteEndpoint $origin .= new($data<origin>);
         self.bless :$arrival :$departureTime :$destination :$origin;
     }
 }
@@ -231,10 +231,10 @@ class Ship {
         Contract.new($.client, $.client.request(:method<POST>, :path("/v2/my/ships/{$.symbol}/negotiate/contract")));
     }
     method new(Client $client, Hash $data --> Ship) {
-        my $cargo = Cargo.new($data<cargo>);
-        my $cooldown = Cooldown.new($data<cooldown>);
-        my $fuel = Fuel.new($data<fuel>);
-        my $nav = Nav.new($data<nav>);
+        my Cargo $cargo .= new($data<cargo>);
+        my Cooldown $cooldown .= new($data<cooldown>);
+        my Fuel $fuel .= new($data<fuel>);
+        my Nav $nav .= new($data<nav>);
         self.bless :$cargo :$client :$cooldown :$fuel :$nav :symbol($data<symbol>);
     }
 }
@@ -244,9 +244,9 @@ class Terms {
     has Delivery @.deliver;
     has Payment $.payment;
     method new(Hash $data --> Terms) {
-        my $deadline = DateTime.new($data<deadline>);
-        my @deliver = $data<deliver>.map(-> $deliveryData { Delivery.new($deliveryData); });
-        my $payment = Payment.new($data<payment>);
+        my DateTime $deadline .= new($data<deadline>);
+        my Delivery @deliver = $data<deliver>.map(-> $deliveryData { Delivery.new($deliveryData); });
+        my Payment $payment .= new($data<payment>);
         self.bless :$deadline :@deliver :$payment;
     }
 }
