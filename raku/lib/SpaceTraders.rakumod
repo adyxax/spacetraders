@@ -21,7 +21,7 @@ class Ship {...};
 class Terms {...};
 
 class Client {
-    has Cro::HTTP::Client:D $.client is required;
+    has Cro::HTTP::Client $!client;
 
     #----- Account management --------------------------------------------------
     method my-agent(--> Agent) {
@@ -49,16 +49,15 @@ class Client {
     }
 
     #----- Internals -----------------------------------------------------------
-    method new(URI $base-uri = URI.new('https://api.spacetraders.io/v2/') -->Client) {
+    submethod BUILD(URI :$base-uri = URI.new('https://api.spacetraders.io/v2/')) {
         my Hash:D $state = from-json("state.json".IO.slurp);
-        my Cro::HTTP::Client:D $client .= new(
+        $!client .= new(
             base-uri => $base-uri,
             headers => [ authorization => "Bearer {$state<token>}",
                          content-type => 'application/json',
                          host => $base-uri.host,
                        ],
         );
-        self.bless: :$client;
     }
     method request(Str :$method, Str :$path, Hash :$payload = {} --> Any) {
         CATCH {
@@ -91,7 +90,7 @@ class Client {
 #----- Entities ----------------------------------------------------------------
 class Agent {
 	has Str $.accountId;
-    has Client $.client;
+    has Client $!client is built;
 	has Int $.credits;
 	has Str $.headquarters;
 	has Int $.shipCount;
@@ -134,7 +133,7 @@ class Cooldown {
 
 class Contract {
 	has Bool $.accepted;
-    has Client $.client;
+    has Client $!client is built;
 	has Str $.id;
 	has Str $.type;
 	has DateTime $.deadlineToAccept;
@@ -215,7 +214,7 @@ class RouteEndpoint {
 
 class Ship {
     has Cargo $.cargo;
-    has Client $.client;
+    has Client $!client is built;
     has Cooldown $.cooldown;
     # crew
     # engine
