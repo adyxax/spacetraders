@@ -42,22 +42,15 @@ main = do
       getToken dbConn
     main' :: SpaceTradersT Bool
     main' = do
-      (Right agent) <- myAgent
+      agent <- myAgent
       logJSON Info "agent" agent
-      (Right (contract:[])) <- myContracts
+      (contract:[]) <- myContracts
       logJSON Info "contract" contract
       _ <- accept contract
-      ships <- myShips
-      case ships of
-        Left e      -> liftIO $ throwIO e
-        Right (s1:s2:_) -> do
-          logJSON Info "s1" s1
-          (Right s1') <- orbit s1
-          logJSON Info "s1 after orbit" s1'.nav.status
-          (Right s1'') <- dock s1'
-          logJSON Info "s1 after dock" s1''.nav.status
-          system <- getSystem s1.nav.systemSymbol
-          logJSON Info "system" system
+      (s1:s2:_) <- myShips
+      logJSON Info "s1" s1
+      system <- getSystem s1.nav.systemSymbol
+      logJSON Info "system" system
       pure False
 
 registerNewAgent :: S.Connection -> IO T.Text
@@ -66,13 +59,10 @@ registerNewAgent dbConn = do
   tokenFile <- T.readFile ".account-token"
   let token = T.dropWhileEnd isSpace tokenFile
   env <- newEnv dbConn defaultLogLevel $ requestTemplate token
-  registerResponse <- runSpaceTradersT (register "CORSAIRS" "ADYXAX-HASKELL") env
-  case registerResponse of
-    Left e             -> throwIO e
-    Right registerData -> do
-      addToken dbConn registerData.token
-      S.execute dbConn "INSERT INTO agents(data) VALUES (?);" (S.Only $ encode registerData.agent)
-      pure registerData.token
+  registerData <- runSpaceTradersT (register "CORSAIRS" "ADYXAX-HASKELL") env
+  addToken dbConn registerData.token
+  S.execute dbConn "INSERT INTO agents(data) VALUES (?);" (S.Only $ encode registerData.agent)
+  pure registerData.token
 
 requestTemplate :: T.Text -> Request
 requestTemplate token = setRequestHost "api.spacetraders.io"

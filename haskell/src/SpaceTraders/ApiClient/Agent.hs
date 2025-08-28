@@ -14,7 +14,7 @@ import           SpaceTraders
 import           SpaceTraders.ApiClient.Client
 import           SpaceTraders.Model.Agent
 
-myAgent :: SpaceTradersT (ApiResponse Agent)
+myAgent :: SpaceTradersT Agent
 myAgent = send $ setRequestPath "/v2/my/agent"
 
 data RegisterData = RegisterData { agent :: Agent
@@ -31,7 +31,7 @@ data RegisterRequest = RegisterRequest { faction :: T.Text
 
 instance ToJSON RegisterRequest
 
-register :: T.Text -> T.Text -> SpaceTradersT (ApiResponse RegisterData)
+register :: T.Text -> T.Text -> SpaceTradersT RegisterData
 register faction symbol  = send $ setRequestMethod "POST"
                                 . setRequestPath "/v2/register"
                                 . setRequestBodyJSON (RegisterRequest faction symbol)

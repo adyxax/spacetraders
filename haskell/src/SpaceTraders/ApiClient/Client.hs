@@ -1,6 +1,5 @@
 module SpaceTraders.ApiClient.Client
-  ( ApiResponse
-  , send
+  ( send
   , sendPaginated
   ) where
 
@@ -30,47 +29,39 @@ data SuccessResponse a = SuccessResponse
 instance FromJSON a => FromJSON (SuccessResponse a) where
   parseJSON = genericParseJSON defaultOptions { fieldLabelModifier = \x -> if x == "data_" then "data" else x }
 
-type ApiResponse a = Either ApiError a
-
-send :: FromJSON a => (Request -> Request) -> SpaceTradersT (ApiResponse a)
+send :: FromJSON a => (Request -> Request) -> SpaceTradersT a
 send requestBuilder = do
   env <- ask
   let request = requestBuilder env.request
   response <- sendAndDecode request
-  pure $ case response of
-    Left e  -> Left e
-    Right r -> Right r.data_
+  pure response.data_
 
-sendPaginated :: (FromJSON a, Semigroup a) => Pagination -> (Request -> Request) -> SpaceTradersT (ApiResponse a)
+sendPaginated :: (FromJSON a, Semigroup a) => Pagination -> (Request -> Request) -> SpaceTradersT a
 sendPaginated pagination requestBuilder = do
   env <- ask
   let request = requestBuilder env.request
   response <- sendAndDecode request
-  case response of
-    Left e  -> pure $ Left e
-    Right r -> if isLastPage r.meta then pure (Right r.data_)
-                                    else do
-      response' <- sendPaginated (nextPage pagination) requestBuilder
-      pure $ case response' of
-        Left e  -> Left e
-        Right d -> Right $ r.data_ <> d
+  if isLastPage response.meta then pure response.data_
+                              else do
+    response' <- sendPaginated (nextPage pagination) requestBuilder
+    pure $ response.data_ <> response'
 
-sendAndDecode :: FromJSON a => Request -> SpaceTradersT (ApiResponse (SuccessResponse a))
+sendAndDecode :: FromJSON a => Request -> SpaceTradersT (SuccessResponse a)
 sendAndDecode request = do
    response <- liftIO $ httpLbs request
    let status = Network.HTTP.Types.Status.statusCode $ getResponseStatus response
        body = getResponseBody response
    if status >= 200 && status <= 299
      then case eitherDecode body of
-       Left e  -> pure . Left $ ApiBodyDecodeError status (T.pack e) (TL.toStrict $ TL.decodeUtf8 body)
-       Right r -> pure $ Right r
+       Left e  -> throw $ ApiBodyDecodeError status (T.pack e) (TL.toStrict $ TL.decodeUtf8 body)
+       Right r -> pure r
      else case eitherDecode body of
-       Left e -> pure . Left $ ApiBodyDecodeError status (T.pack e) (TL.toStrict $ TL.decodeUtf8 body)
-       Right (ApiResetHappened e) -> liftIO $ throwIO e
+       Left e -> throw $ ApiBodyDecodeError status (T.pack e) (TL.toStrict $ TL.decodeUtf8 body)
+       Right (ApiResetHappened e) -> throw e
        Right (ApiRateLimit r) -> do
          liftIO $ delay (1_000_000 * round r.retryAfter)
          sendAndDecode request
-       Right e -> pure $ Left e
+       Right e -> throw e
 
 int2ByteString :: Int -> B.ByteString
 int2ByteString = B.pack . map B.c2w . show

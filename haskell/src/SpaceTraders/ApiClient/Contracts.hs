@@ -10,10 +10,10 @@ import           SpaceTraders
 import           SpaceTraders.ApiClient.Client
 import           SpaceTraders.Model.Contract
 
-accept :: Contract -> SpaceTradersT (ApiResponse Contract)
-accept contract | contract.accepted = pure $ Right contract
+accept :: Contract -> SpaceTradersT Contract
+accept contract | contract.accepted = pure contract
                 | otherwise = send $ setRequestMethod "POST"
                                    . setRequestPath (T.encodeUtf8 $ mconcat ["/v2/my/contracts/", contract.id, "/accept"])
 
-myContracts :: SpaceTradersT (ApiResponse [Contract])
+myContracts :: SpaceTradersT [Contract]
 myContracts = send $ setRequestPath "/v2/my/contracts"

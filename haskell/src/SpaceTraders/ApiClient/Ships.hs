@@ -20,25 +20,21 @@ data NavMessage = NavMessage
 
 instance FromJSON NavMessage
 
-dock :: Ship -> SpaceTradersT (ApiResponse Ship)
-dock ship | isDocked ship = pure $ Right ship
+dock :: Ship -> SpaceTradersT Ship
+dock ship | isDocked ship = pure ship
           | otherwise = do
               resp <- send $ setRequestMethod "POST"
                            . setRequestPath (T.encodeUtf8 $ mconcat ["/v2/my/ships/", ship.symbol, "/dock"])
-                           :: SpaceTradersT (ApiResponse NavMessage)
-              pure $ case resp of
-                Left e                 -> Left e
-                Right (NavMessage nav) -> Right $ ship { SpaceTraders.Model.Ship.nav = nav }
+                           :: SpaceTradersT NavMessage
+              pure $ ship { SpaceTraders.Model.Ship.nav = resp.nav }
 
-myShips :: SpaceTradersT (ApiResponse [Ship])
+myShips :: SpaceTradersT [Ship]
 myShips = send $ setRequestPath "/v2/my/ships"
 
-orbit :: Ship -> SpaceTradersT (ApiResponse Ship)
-orbit ship | isOrbitting ship = pure $ Right ship
+orbit :: Ship -> SpaceTradersT Ship
+orbit ship | isOrbitting ship = pure ship
            | otherwise = do
                resp <- send $ setRequestMethod "POST"
                             . setRequestPath (T.encodeUtf8 $ mconcat ["/v2/my/ships/", ship.symbol, "/orbit"])
-                            :: SpaceTradersT (ApiResponse NavMessage)
-               pure $ case resp of
-                 Left e                 -> Left e
-                 Right (NavMessage nav) -> Right $ ship { SpaceTraders.Model.Ship.nav = nav }
+                            :: SpaceTradersT NavMessage
+               pure $ ship { SpaceTraders.Model.Ship.nav = resp.nav }
