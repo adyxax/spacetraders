@@ -19,6 +19,7 @@ import           SpaceTraders.ApiClient.Systems
 import           SpaceTraders.Database
 import           SpaceTraders.Database.Tokens
 import           SpaceTraders.Model.Ship
+import           SpaceTraders.Model.System
 import           System.IO.Error
 
 defaultLogLevel :: LogLevel
@@ -49,8 +50,10 @@ main = do
       _ <- accept contract
       (s1:s2:_) <- myShips
       logJSON Info "s1" s1
-      system <- getSystem s1.nav.systemSymbol
-      logJSON Info "system" system
+      s <- getSystem s1.nav.systemSymbol
+      ws <- listWaypoints s
+      let ss = filterShipyardWaypoints ws
+      logJSON Info "shipyards" ss
       pure False
 
 registerNewAgent :: S.Connection -> IO T.Text

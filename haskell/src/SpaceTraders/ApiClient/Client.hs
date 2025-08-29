@@ -39,7 +39,10 @@ send requestBuilder = do
 sendPaginated :: (FromJSON a, Semigroup a) => Pagination -> (Request -> Request) -> SpaceTradersT a
 sendPaginated pagination requestBuilder = do
   env <- ask
-  let request = requestBuilder env.request
+  let request = requestBuilder
+              $ setRequestQueryString [ ("limit", Just . int2ByteString $ pagination.limit)
+                                      , ("page", Just . int2ByteString $ pagination.page) ]
+              $ env.request
   response <- sendAndDecode request
   if isLastPage response.meta then pure response.data_
                               else do
