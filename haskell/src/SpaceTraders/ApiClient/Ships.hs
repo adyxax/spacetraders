@@ -14,19 +14,19 @@ import           SpaceTraders
 import           SpaceTraders.ApiClient.Client
 import           SpaceTraders.Model.Ship
 
-data NavMessage = NavMessage
-  { nav :: Nav
-  } deriving (Generic, Show)
-
-instance FromJSON NavMessage
-
 dock :: Ship -> SpaceTradersT Ship
 dock ship | isDocked ship = pure ship
           | otherwise = do
               resp <- send $ setRequestMethod "POST"
                            . setRequestPath (T.encodeUtf8 $ mconcat ["/v2/my/ships/", ship.symbol, "/dock"])
-                           :: SpaceTradersT NavMessage
+                           :: SpaceTradersT DockResponse
               pure $ ship { SpaceTraders.Model.Ship.nav = resp.nav }
+
+data DockResponse = DockResponse
+  { nav :: Nav
+  } deriving (Generic, Show)
+
+instance FromJSON DockResponse
 
 myShips :: SpaceTradersT [Ship]
 myShips = send $ setRequestPath "/v2/my/ships"
@@ -36,5 +36,5 @@ orbit ship | isOrbitting ship = pure ship
            | otherwise = do
                resp <- send $ setRequestMethod "POST"
                             . setRequestPath (T.encodeUtf8 $ mconcat ["/v2/my/ships/", ship.symbol, "/orbit"])
-                            :: SpaceTradersT NavMessage
+                            :: SpaceTradersT DockResponse
                pure $ ship { SpaceTraders.Model.Ship.nav = resp.nav }
